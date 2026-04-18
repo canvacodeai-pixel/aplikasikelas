@@ -514,11 +514,43 @@ window.getTandaTangan = function() {
         }
 
         async function handleLogin() {
-            const user = document.getElementById('loginUsername').value; const pass = document.getElementById('loginPassword').value; const role = document.getElementById('loginRole').value;
-            document.getElementById('loadingText').innerText = "Memverifikasi Akun..."; document.getElementById('loadingOverlay').classList.remove('hidden'); await executeSync(true); document.getElementById('loadingOverlay').classList.add('hidden');
-            const usersDb = getDB('mc_users'); const validUser = usersDb.find(u => String(u.username).trim() === String(user).trim() && String(u.password).trim() === String(pass).trim() && u.role === role);
-            if(!validUser) { customAlert("Gagal Masuk! Username/Password Salah, atau data Anda belum terdaftar.", "error", "Login Gagal"); return; }
-            setSafe('mc_session', JSON.stringify({ username: validUser.username, role: role, studentId: validUser.studentId || 1, namaLengkap: validUser.namaLengkap || validUser.username })); loadSession();
+            const user = document.getElementById('loginUsername').value; 
+const pass = document.getElementById('loginPassword').value; 
+const role = document.getElementById('loginRole').value;
+
+document.getElementById('loadingText').innerText = "Memverifikasi Akun..."; 
+document.getElementById('loadingOverlay').classList.remove('hidden'); 
+await executeSync(true); 
+document.getElementById('loadingOverlay').classList.add('hidden');
+
+const usersDb = getDB('mc_users'); 
+const validUser = usersDb.find(u => 
+    String(u.username).trim() === String(user).trim() && 
+    String(u.password).trim() === String(pass).trim() && 
+    u.role === role
+);
+
+if(!validUser) { 
+    customAlert("Gagal Masuk! Username/Password Salah, atau data Anda belum terdaftar.", "error", "Login Gagal"); 
+    return; 
+}
+
+setSafe('mc_session', JSON.stringify({ 
+    username: validUser.username, 
+    role: role, 
+    studentId: validUser.studentId || 1, 
+    namaLengkap: validUser.namaLengkap || validUser.username 
+})); 
+loadSession();
+
+// ✅ Simpan kredensial ke Android untuk auto-login berikutnya
+try {
+    if (typeof Android !== 'undefined' && Android !== null) {
+        Android.onLoginSuccess(user, pass, role);
+    }
+} catch(e) {
+    console.log('Android bridge error: ' + e);
+}
         }
 
         function loadSession() {
