@@ -285,16 +285,25 @@ window.getTandaTangan = function() {
 }
 
         // FUNGSI EXPORT EXCEL GENERAL
-        window.exportTableToExcel = function(tableId, filename) {
-            document.getElementById('loadingText').innerText = "Menyiapkan Excel..."; 
-            document.getElementById('loadingOverlay').classList.remove('hidden');
-            setTimeout(() => {
-                let table = document.getElementById(tableId);
-                if(!table) { customAlert("Tabel tidak ditemukan.", "error"); document.getElementById('loadingOverlay').classList.add('hidden'); return; }
-                let wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
-                XLSX.writeFile(wb, filename + ".xlsx"); document.getElementById('loadingOverlay').classList.add('hidden');
-            }, 500);
-        }
+			window.exportTableToExcel = function(tableId, filename) {
+				document.getElementById('loadingText').innerText = "Menyiapkan Excel...";
+				document.getElementById('loadingOverlay').classList.remove('hidden');
+				setTimeout(() => {
+					let table = document.getElementById(tableId);
+					if(!table) { customAlert("Tabel tidak ditemukan.", "error"); document.getElementById('loadingOverlay').classList.add('hidden'); return; }
+					let wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
+					let finalName = filename.endsWith('.xlsx') ? filename : filename + '.xlsx';
+					let wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+					let blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+					let url = URL.createObjectURL(blob);
+					let a = document.createElement('a');
+					a.href = url; a.download = finalName;
+					document.body.appendChild(a); a.click();
+					document.body.removeChild(a);
+					setTimeout(() => URL.revokeObjectURL(url), 1000);
+					document.getElementById('loadingOverlay').classList.add('hidden');
+				}, 500);
+			}
 
         // FUNGSI MULTI-SHEET EXCEL UNTUK RIWAYAT PENILAIAN
         window.downloadSemuaRiwayatNilaiExcel = function() {
@@ -305,7 +314,16 @@ window.getTandaTangan = function() {
                 nilaiDb.forEach(n => { if(!grouped[n.judul]) grouped[n.judul] = []; let s = students.find(x => x.id == n.studentId); grouped[n.judul].push({ 'NISN': s ? s.nisn : '-', 'Nama Siswa': s ? s.nama : 'Unknown', 'Kelas': s ? s.kelas : '-', 'Nilai': parseInt(n.score) || 0 }); });
                 let hasData = false;
                 for(let judul in grouped) { hasData = true; let ws = XLSX.utils.json_to_sheet(grouped[judul]); let safeJudul = judul.substring(0, 31).replace(/[\\/*?:\[\]]/g, ""); XLSX.utils.book_append_sheet(wb, ws, safeJudul); }
-                if(hasData) { XLSX.writeFile(wb, "Riwayat_Input_Penilaian.xlsx"); } else { customAlert("Belum ada riwayat nilai untuk didownload.", "warning"); }
+                if(hasData) {
+				let wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+				let blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+				let url = URL.createObjectURL(blob);
+				let a = document.createElement('a');
+				a.href = url; a.download = 'Riwayat_Input_Penilaian.xlsx';
+				document.body.appendChild(a); a.click();
+				document.body.removeChild(a);
+				setTimeout(() => URL.revokeObjectURL(url), 1000);
+			} else { customAlert("Belum ada riwayat nilai untuk didownload.", "warning"); }
                 document.getElementById('loadingOverlay').classList.add('hidden');
             }, 500);
         }
@@ -3064,7 +3082,12 @@ window.downloadTemplateKurikulum = function() {
     let ws = XLSX.utils.json_to_sheet(templateData);
     let wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template_Kurikulum");
-    XLSX.writeFile(wb, "Template_Database_Kurikulum.xlsx");
+    let wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+	let blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+	let url = URL.createObjectURL(blob);
+	let a = document.createElement('a'); a.href = url; a.download = 'Template_Database_Kurikulum.xlsx';
+	document.body.appendChild(a); a.click(); document.body.removeChild(a);
+	setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 // 2. Fungsi Import / Baca File Excel
@@ -3257,9 +3280,17 @@ window.exportMultiTableToExcel = function(containerId, filenamePrefix) {
             let sheetName = rawName.substring(0, 30).replace(/[\\/*?:\[\]]/g, "").trim();
             XLSX.utils.book_append_sheet(wb, ws, sheetName);
         });
-        XLSX.writeFile(wb, filenamePrefix + ".xlsx");
-        document.getElementById('loadingOverlay').classList.add('hidden');
-    }, 800);
+		let finalName = filenamePrefix + '.xlsx';
+				let wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+				let blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+				let url = URL.createObjectURL(blob);
+				let a = document.createElement('a');
+				a.href = url; a.download = finalName;
+				document.body.appendChild(a); a.click();
+				document.body.removeChild(a);
+				setTimeout(() => URL.revokeObjectURL(url), 1000);
+				document.getElementById('loadingOverlay').classList.add('hidden');
+			}, 800);
 };
 // =========================================================================
 // FINALISASI FITUR IMPORT & EXPORT MANAJEMEN SISWA
@@ -3290,7 +3321,12 @@ window.downloadTemplateSiswa = function() {
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa");
-    XLSX.writeFile(wb, "Template_Data_Siswa.xlsx");
+    let wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+	let blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+	let url = URL.createObjectURL(blob);
+	let a = document.createElement('a'); a.href = url; a.download = 'Template_Data_Siswa.xlsx';
+	document.body.appendChild(a); a.click(); document.body.removeChild(a);
+	setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 window.importSiswaExcel = function(event) {
