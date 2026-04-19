@@ -218,7 +218,7 @@
         // FUNGSI KOP SURAT DINAMIS (FIX LOGO KANAN MENGHILANG & FONT SIZE)
 // FUNGSI KOP SURAT DINAMIS
 	window.getKopSurat = function() {
-		let s = getDB('mc_settings').find(setting => setting.username === currentUserUsername) || { 
+		let s = getDB('mc_settings').find(function(setting){ return setting.username === currentUserUsername && (!setting.schoolCode || setting.schoolCode === currentSchoolCode); }) || { 
 			skpd: 'PEMERINTAH KOTA MATARAM\nDINAS PENDIDIKAN', 
 			sekolah: 'NAMA SEKOLAH DASAR', 
 			alamat: 'Jl. Contoh Alamat No. 123 Telp. (000) 12345 Kode Pos 12345', 
@@ -261,7 +261,7 @@
 
 // FUNGSI TANDA TANGAN DINAMIS
 window.getTandaTangan = function() {
-    let s = getDB('mc_settings').find(setting => setting.username === currentUserUsername) || {};
+    let s = getDB('mc_settings').find(function(setting){ return setting.username === currentUserUsername && (!setting.schoolCode || setting.schoolCode === currentSchoolCode); }) || {};
     let tgl = formatDateID(new Date().toISOString());
     return `
     <table style="width:100%; margin-top:40px; border-collapse:collapse; border:none; font-family:'Times New Roman', Times, serif; font-size:14px; color:black; page-break-inside:avoid;">
@@ -310,7 +310,7 @@ window.getTandaTangan = function() {
             document.getElementById('loadingText').innerText = "Membuat Multi-Sheet Excel..."; 
             document.getElementById('loadingOverlay').classList.remove('hidden');
             setTimeout(() => {
-                let wb = XLSX.utils.book_new(); let nilaiDb = getDB('mc_nilai'); let students = getDB('mc_students'); let grouped = {};
+                let wb = XLSX.utils.book_new(); let nilaiDb = filterBySchool(getDB('mc_nilai')).filter(function(n){ return !n.guruUsername || n.guruUsername === currentUserUsername; }); let students = getMyStudents(); let grouped = {};
                 nilaiDb.forEach(n => { if(!grouped[n.judul]) grouped[n.judul] = []; let s = students.find(x => x.id == n.studentId); grouped[n.judul].push({ 'NISN': s ? s.nisn : '-', 'Nama Siswa': s ? s.nama : 'Unknown', 'Kelas': s ? s.kelas : '-', 'Nilai': parseInt(n.score) || 0 }); });
                 let hasData = false;
                 for(let judul in grouped) { hasData = true; let ws = XLSX.utils.json_to_sheet(grouped[judul]); let safeJudul = judul.substring(0, 31).replace(/[\\/*?:\[\]]/g, ""); XLSX.utils.book_append_sheet(wb, ws, safeJudul); }
@@ -491,9 +491,27 @@ window.getTandaTangan = function() {
         function getDB(key) { try { return JSON.parse(getSafe(key)) || []; } catch(e) { return []; } }
         function saveDB(key, data) { setSafe(key, JSON.stringify(data)); }
 
-        function syncToSheet(action, payload) { fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: action, data: payload }) }).then(res => res.json()).catch(err => console.log('Offline / Sync Delay.')); }
+        function getMyStudents() {
+            return getDB('mc_students').filter(function(s) {
+                return (!s.schoolCode || s.schoolCode === currentSchoolCode) &&
+                       (!s.guruUsername || s.guruUsername === currentUserUsername);
+            });
+        }
+        function getSchoolStudents() {
+            return getDB('mc_students').filter(function(s) {
+                return !s.schoolCode || s.schoolCode === currentSchoolCode;
+            });
+        }
+        function filterBySchool(arr) {
+            return arr.filter(function(item) {
+                return !item.schoolCode || item.schoolCode === currentSchoolCode;
+            });
+        }
 
-        let currentUserRole = null; let currentUserName = null; let currentUserUsername = null; let currentStudentId = 1; let myChart = null; 
+        function syncToSheet(action, payload) { var sc = currentSchoolCode || getSafe('mc_last_school') || ''; fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: action, schoolCode: sc, data: payload }) }).then(res => res.json()).catch(err => console.log('Offline / Sync Delay.')); }
+
+        let currentUserRole = null; let currentUserName = null; let currentUserUsername = null; let currentStudentId = 1; let myChart = null;
+        let currentSchoolCode = null;
         let tabunganTab = 'harian'; let tabunganDateFilter = new Date().toISOString().split('T')[0]; let cetakStudentId = ''; let editingTabunganId = null; let editingTabunganType = null;
         let absenTab = 'harian'; let cetakAbsenMonth = new Date().getMonth(); let cetakAbsenYear = new Date().getFullYear(); let editingSiswaId = null; 
         let nilaiTab = 'input'; let editingNilaiJudul = null;
@@ -501,30 +519,34 @@ window.getTandaTangan = function() {
         const appDiv = document.getElementById('app');
 
         function renderLogin() {
-            appDiv.innerHTML = `
-                <div class="flex items-center justify-center h-screen p-4 fade-in overflow-auto"><div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border-t-8 border-blue-600"><div class="text-center mb-8"><i class="fas fa-graduation-cap text-5xl text-blue-600 mb-4"></i><h1 class="text-2xl font-bold text-gray-800">MyClassroom</h1><p class="text-sm text-gray-500">Sistem Akademik Offline-First</p></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700">Username / NISN</label><input type="text" id="loginUsername" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Ketik username"></div><div><label class="block text-sm font-medium text-gray-700">Password</label><input type="password" id="loginPassword" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Ketik password"></div><div><label class="block text-sm font-medium text-gray-700">Masuk Sebagai</label><select id="loginRole" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md bg-white"><option value="guru">Guru</option><option value="siswa">Siswa / Orang Tua</option></select></div><button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg mt-4 shadow-md"><i class="fas fa-sign-in-alt mr-2"></i> Masuk Aplikasi</button></div></div></div>
-            `;
+            var savedSchool = getSafe('mc_last_school') || '';
+            appDiv.innerHTML = '<div class="flex items-center justify-center h-screen p-4 fade-in overflow-auto"><div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border-t-8 border-blue-600"><div class="text-center mb-6"><i class="fas fa-graduation-cap text-5xl text-blue-600 mb-4"></i><h1 class="text-2xl font-bold text-gray-800">E-Pajar</h1><p class="text-sm text-gray-500">Perangkat Ajar Elektronik</p></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700"><i class="fas fa-school mr-1 text-blue-500"></i> Kode Sekolah</label><input type="text" id="loginSchoolCode" value="' + savedSchool + '" class="mt-1 block w-full px-4 py-2 border-2 border-blue-200 rounded-md font-bold" placeholder="Contoh: SDN001" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"><p class="text-xs text-gray-400 mt-1">Kode unik sekolah Anda (hubungi admin jika belum punya)</p></div><div><label class="block text-sm font-medium text-gray-700">Username / NISN</label><input type="text" id="loginUsername" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Ketik username"></div><div><label class="block text-sm font-medium text-gray-700">Password</label><input type="password" id="loginPassword" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Ketik password"></div><div><label class="block text-sm font-medium text-gray-700">Masuk Sebagai</label><select id="loginRole" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md bg-white"><option value="guru">Guru</option><option value="siswa">Siswa / Orang Tua</option></select></div><button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg mt-4 shadow-md"><i class="fas fa-sign-in-alt mr-2"></i> Masuk Aplikasi</button></div></div></div>';
         }
 
         async function executeSync(isSilent = false) {
             if(!isSilent) { document.getElementById('loadingText').innerText = "Sinkronisasi..."; document.getElementById('loadingOverlay').classList.remove('hidden'); }
             try {
-                const response = await fetch(SCRIPT_URL + '?action=get_all'); const result = await response.json();
+                var sc = currentSchoolCode || getSafe('mc_last_school') || '';
+                const response = await fetch(SCRIPT_URL + '?action=get_all&schoolCode=' + encodeURIComponent(sc)); const result = await response.json();
                 if(result.status === 'success') {
+                    var fbs = function(arr) { return (arr||[]).filter(function(item){ return !item.schoolCode || item.schoolCode === sc; }); };
                     saveDB('mc_cp_master', result.data.cp_master || []);
-					saveDB('mc_users', result.data.users || []); saveDB('mc_students', result.data.siswa || []);
-                    saveDB('mc_nilai', result.data.nilai || []); saveDB('mc_absen', result.data.absen || []);
-                    saveDB('mc_tabungan', result.data.tabungan || []); saveDB('mc_saldo_guru', result.data.saldoGuru || []);
-                    saveDB('mc_dokumentasi', result.data.dokumentasi || []); saveDB('mc_jadwal', result.data.jadwal || []);
-                    saveDB('mc_kalender', result.data.kalender || []);
-					saveDB('mc_agenda', result.data.agenda || []);
-                    // Update data kurikulum
-                    let apiKurikulum = result.data.kurikulum || [];
+                    saveDB('mc_users', fbs(result.data.users || []));
+                    saveDB('mc_students', fbs(result.data.siswa || []));
+                    saveDB('mc_nilai', fbs(result.data.nilai || []));
+                    saveDB('mc_absen', fbs(result.data.absen || []));
+                    saveDB('mc_tabungan', fbs(result.data.tabungan || []));
+                    saveDB('mc_saldo_guru', fbs(result.data.saldoGuru || []));
+                    saveDB('mc_dokumentasi', fbs(result.data.dokumentasi || []));
+                    saveDB('mc_jadwal', fbs(result.data.jadwal || []));
+                    saveDB('mc_kalender', fbs(result.data.kalender || []));
+                    saveDB('mc_agenda', fbs(result.data.agenda || []));
+                    let apiKurikulum = fbs(result.data.kurikulum || []);
                     apiKurikulum = apiKurikulum.map((k, idx) => { if(!k.id) k.id = Date.now() + idx; return k; });
                     saveDB('mc_kurikulum', apiKurikulum);
-                    
-                    saveDB('mc_prota', result.data.prota || []); saveDB('mc_promes', result.data.promes || []);
-                    if(result.data.settings && result.data.settings.length > 0) saveDB('mc_settings', result.data.settings);
+                    saveDB('mc_prota', fbs(result.data.prota || []));
+                    saveDB('mc_promes', fbs(result.data.promes || []));
+                    if(result.data.settings && result.data.settings.length > 0) saveDB('mc_settings', fbs(result.data.settings));
                     if(!isSilent) customAlert("Sinkronisasi database terbaru berhasil!", "success", "Sinkronisasi Selesai");
                 }
             } catch (error) { if(!isSilent) customAlert("Gagal Sinkronisasi. Anda sedang Offline atau koneksi bermasalah.", "error", "Koneksi Terputus"); }
@@ -532,47 +554,68 @@ window.getTandaTangan = function() {
         }
 
         async function handleLogin() {
-            const user = document.getElementById('loginUsername').value; 
-const pass = document.getElementById('loginPassword').value; 
-const role = document.getElementById('loginRole').value;
+            const schoolCode = (document.getElementById('loginSchoolCode') ? document.getElementById('loginSchoolCode').value : '').trim().toUpperCase();
+            const user = document.getElementById('loginUsername').value.trim();
+            const pass = document.getElementById('loginPassword').value.trim();
+            const role = document.getElementById('loginRole').value;
 
-document.getElementById('loadingText').innerText = "Memverifikasi Akun..."; 
-document.getElementById('loadingOverlay').classList.remove('hidden'); 
-await executeSync(true); 
-document.getElementById('loadingOverlay').classList.add('hidden');
+            if (!schoolCode) { customAlert("Kode Sekolah wajib diisi!", "warning", "Kode Sekolah Kosong"); return; }
 
-const usersDb = getDB('mc_users'); 
-const validUser = usersDb.find(u => 
-    String(u.username).trim() === String(user).trim() && 
-    String(u.password).trim() === String(pass).trim() && 
-    u.role === role
-);
+            document.getElementById('loadingText').innerText = "Memverifikasi Akun...";
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            currentSchoolCode = schoolCode;
+            await executeSync(true);
+            document.getElementById('loadingOverlay').classList.add('hidden');
 
-if(!validUser) { 
-    customAlert("Gagal Masuk! Username/Password Salah, atau data Anda belum terdaftar.", "error", "Login Gagal"); 
-    return; 
-}
+            const usersDb = getDB('mc_users');
+            const validUser = usersDb.find(u =>
+                String(u.schoolCode || '').trim().toUpperCase() === schoolCode &&
+                String(u.username).trim() === user &&
+                String(u.password).trim() === pass &&
+                u.role === role
+            );
 
-setSafe('mc_session', JSON.stringify({ 
-    username: validUser.username, 
-    role: role, 
-    studentId: validUser.studentId || 1, 
-    namaLengkap: validUser.namaLengkap || validUser.username 
-})); 
-loadSession();
+            if (!validUser) {
+                currentSchoolCode = null;
+                customAlert("Gagal Masuk! Kode Sekolah, Username, atau Password salah.", "error", "Login Gagal");
+                return;
+            }
 
-// ✅ Simpan kredensial ke Android untuk auto-login berikutnya
-try {
-    if (typeof Android !== 'undefined' && Android !== null) {
-        Android.onLoginSuccess(user, pass, role);
-    }
-} catch(e) {
-    console.log('Android bridge error: ' + e);
-}
+            setSafe('mc_last_school', schoolCode);
+            setSafe('mc_session', JSON.stringify({
+                username: validUser.username,
+                role: role,
+                studentId: validUser.studentId || 1,
+                namaLengkap: validUser.namaLengkap || validUser.username,
+                schoolCode: schoolCode
+            }));
+            loadSession();
+
+            try {
+                if (typeof Android !== 'undefined' && Android !== null) {
+                    Android.onLoginSuccess(user, pass, role);
+                }
+            } catch(e) {
+                console.log('Android bridge error: ' + e);
+            }
         }
 
         function loadSession() {
-            try { const sessionStr = getSafe('mc_session'); if(sessionStr && sessionStr !== "undefined") { const session = JSON.parse(sessionStr); currentUserRole = session.role; currentUserName = session.namaLengkap || session.username; currentUserUsername = session.username; currentStudentId = session.studentId; renderLayout(); window.navTo('renderDashboardHome'); return true; } } catch (e) { rmSafe('mc_session'); } return false;
+            try {
+                const sessionStr = getSafe('mc_session');
+                if(sessionStr && sessionStr !== "undefined") {
+                    const session = JSON.parse(sessionStr);
+                    currentUserRole = session.role;
+                    currentUserName = session.namaLengkap || session.username;
+                    currentUserUsername = session.username;
+                    currentStudentId = session.studentId;
+                    currentSchoolCode = session.schoolCode || getSafe('mc_last_school') || '';
+                    renderLayout();
+                    window.navTo('renderDashboardHome');
+                    return true;
+                }
+            } catch (e) { rmSafe('mc_session'); }
+            return false;
         }
 
         function renderLayout() {
@@ -620,7 +663,7 @@ try {
                     <div class="relative"><button onclick="window.toggleAddOn()" class="w-full flex items-center justify-between px-6 py-3 text-white hover:bg-blue-700 focus:outline-none"><span><i class="fas fa-cubes w-6"></i> Add On</span><i class="fas fa-chevron-down text-sm" id="addon-icon"></i></button><div id="addon-menu" class="hidden bg-blue-900 flex flex-col"><a href="#" onclick="window.navTo('renderSiswaTabungan')" class="pl-14 pr-6 py-3 text-gray-200 hover:text-white hover:bg-blue-600 text-sm border-l-4 border-teal-400"><i class="fas fa-wallet mr-2"></i> Tabungan Siswa</a></div></div>
                 `;
             }
-            appDiv.innerHTML = `<div class="flex h-screen bg-gray-100 overflow-hidden"><div id="sidebarOverlay" class="overlay" onclick="window.toggleSidebar()"></div><aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 z-40 w-64 bg-blue-800 text-white transform -translate-x-full md:translate-x-0 md:static md:flex-shrink-0 shadow-xl flex flex-col"><div class="flex items-center justify-center h-16 bg-blue-900 border-b border-blue-700"><span class="text-xl font-bold"><i class="fas fa-graduation-cap mr-2"></i> MyClassroom</span></div><div class="p-4 bg-blue-700 flex items-center space-x-3"><div class="w-10 h-10 bg-white rounded-full flex justify-center items-center text-blue-800 font-bold text-lg"><i class="fas fa-user"></i></div><div><div class="font-semibold text-sm max-w-[150px] truncate" title="${currentUserName}">${currentUserName}</div><div class="text-xs text-blue-300 capitalize">${currentUserRole}</div></div></div><nav class="flex-1 overflow-y-auto py-2 flex flex-col">${menuItems}<hr class="border-blue-700 my-2 mx-4"><button onclick="executeSync(false)" class="flex items-center w-full px-6 py-3 text-yellow-300 hover:bg-blue-700 font-bold focus:outline-none text-left"><i class="fas fa-sync-alt w-6"></i> Sinkronisasi Data</button></nav><div class="p-4 border-t border-blue-700"><button onclick="confirmLogout()" class="w-full bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white text-sm font-bold flex items-center justify-center"><i class="fas fa-sign-out-alt mr-2"></i> Keluar Akun</button></div></aside><div class="flex-1 flex flex-col min-w-0 overflow-hidden relative"><header class="bg-white shadow-sm h-16 flex items-center justify-between px-4 z-30"><button onclick="window.toggleSidebar()" class="md:hidden text-gray-600 hover:text-blue-600 focus:outline-none p-2"><i class="fas fa-bars text-2xl"></i></button><h2 id="pageTitle" class="text-lg font-bold text-gray-800 md:ml-4">Dashboard Utama</h2><div class="flex items-center"><i class="fas fa-bell text-gray-400 hover:text-blue-500 cursor-pointer text-xl"></i></div></header><main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 relative"></main></div></div>`;
+            appDiv.innerHTML = `<div class="flex h-screen bg-gray-100 overflow-hidden"><div id="sidebarOverlay" class="overlay" onclick="window.toggleSidebar()"></div><aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 z-40 w-64 bg-blue-800 text-white transform -translate-x-full md:translate-x-0 md:static md:flex-shrink-0 shadow-xl flex flex-col"><div class="flex flex-col items-center justify-center py-3 bg-blue-900 border-b border-blue-700"><span class="text-lg font-bold"><i class="fas fa-graduation-cap mr-2"></i> E-Pajar</span><span class="text-xs text-blue-300 font-semibold mt-1">${currentSchoolCode || ""}</span></div><div class="p-4 bg-blue-700 flex items-center space-x-3"><div class="w-10 h-10 bg-white rounded-full flex justify-center items-center text-blue-800 font-bold text-lg"><i class="fas fa-user"></i></div><div><div class="font-semibold text-sm max-w-[150px] truncate" title="${currentUserName}">${currentUserName}</div><div class="text-xs text-blue-300 capitalize">${currentUserRole}</div></div></div><nav class="flex-1 overflow-y-auto py-2 flex flex-col">${menuItems}<hr class="border-blue-700 my-2 mx-4"><button onclick="executeSync(false)" class="flex items-center w-full px-6 py-3 text-yellow-300 hover:bg-blue-700 font-bold focus:outline-none text-left"><i class="fas fa-sync-alt w-6"></i> Sinkronisasi Data</button></nav><div class="p-4 border-t border-blue-700"><button onclick="confirmLogout()" class="w-full bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white text-sm font-bold flex items-center justify-center"><i class="fas fa-sign-out-alt mr-2"></i> Keluar Akun</button></div></aside><div class="flex-1 flex flex-col min-w-0 overflow-hidden relative"><header class="bg-white shadow-sm h-16 flex items-center justify-between px-4 z-30"><button onclick="window.toggleSidebar()" class="md:hidden text-gray-600 hover:text-blue-600 focus:outline-none p-2"><i class="fas fa-bars text-2xl"></i></button><h2 id="pageTitle" class="text-lg font-bold text-gray-800 md:ml-4">Dashboard Utama</h2><div class="flex items-center"><i class="fas fa-bell text-gray-400 hover:text-blue-500 cursor-pointer text-xl"></i></div></header><main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 relative"></main></div></div>`;
         }
 
         // =========================================================================
@@ -628,7 +671,7 @@ try {
         // =========================================================================
         function renderGuruPengaturan() {
             window.setPageTitle("Pengaturan");
-            let s = getDB('mc_settings').find(setting => setting.username === currentUserUsername) || {skpd:'', sekolah:'', alamat:'', email:'', npsn:'', logoKiri:'', logoKanan:'', namaKepsek:'', nipKepsek:'', namaGuru:'', nipGuru:''};
+            let s = getDB('mc_settings').find(function(setting){ return setting.username === currentUserUsername && (!setting.schoolCode || setting.schoolCode === currentSchoolCode); }) || {skpd:'', sekolah:'', alamat:'', email:'', npsn:'', logoKiri:'', logoKanan:'', namaKepsek:'', nipKepsek:'', namaGuru:'', nipGuru:''};
             
             document.getElementById('main-content').innerHTML = `
                 <div class="fade-in max-w-4xl mx-auto pb-20">
@@ -690,9 +733,9 @@ try {
                 if(fKiri) { finalKiri = await compressImageToBase64(fKiri, 150); }
                 if(fKanan) { finalKanan = await compressImageToBase64(fKanan, 150); }
                 
-                let data = { id: Date.now(), username: currentUserUsername, skpd, sekolah, alamat, email, npsn, logoKiri: finalKiri, logoKanan: finalKanan, namaKepsek, nipKepsek, namaGuru, nipGuru };
+                let data = { id: Date.now(), username: currentUserUsername, schoolCode: currentSchoolCode, skpd, sekolah, alamat, email, npsn, logoKiri: finalKiri, logoKanan: finalKanan, namaKepsek, nipKepsek, namaGuru, nipGuru };
                 
-                let idx = settingsDb.findIndex(set => set.username === currentUserUsername);
+                let idx = settingsDb.findIndex(function(set){ return set.username === currentUserUsername && (!set.schoolCode || set.schoolCode === currentSchoolCode); });
                 if (idx > -1) settingsDb[idx] = data; else settingsDb.push(data);
                 
                 saveDB('mc_settings', settingsDb); syncToSheet('simpan_settings', data);
@@ -1438,9 +1481,9 @@ window.generateTabelTPATP = function() {
                 </div>`;
                 
             if(nilaiTab === 'input') {
-                const students = getDB('mc_students'); const defaultScores = [60,65,70,75,80,90,95,100]; 
+                const students = getMyStudents(); const defaultScores = [60,65,70,75,80,90,95,100]; 
                 let listHtmlArr = []; let savedNilai = [];
-                if(editingNilaiJudul) savedNilai = getDB('mc_nilai').filter(n => n.judul === editingNilaiJudul);
+                if(editingNilaiJudul) savedNilai = getDB('mc_nilai').filter(function(n){ return n.judul === editingNilaiJudul && (!n.schoolCode || n.schoolCode === currentSchoolCode) && (!n.guruUsername || n.guruUsername === currentUserUsername); });
                 
                 students.forEach(s => { 
                     let btnHtmlArr = []; 
@@ -1503,9 +1546,9 @@ window.generateTabelTPATP = function() {
             document.getElementById('loadingText').innerText = "Menyimpan Nilai..."; document.getElementById('loadingOverlay').classList.remove('hidden'); 
             setTimeout(() => { 
                 let nilaiDB = getDB('mc_nilai'); 
-                if(editingNilaiJudul) { nilaiDB = nilaiDB.filter(n => n.judul !== editingNilaiJudul); syncToSheet('hapus_nilai_judul', {judul: editingNilaiJudul}); } 
+                if(editingNilaiJudul) { nilaiDB = nilaiDB.filter(function(n){ return !(n.judul === editingNilaiJudul && (!n.schoolCode || n.schoolCode === currentSchoolCode)); }); syncToSheet('hapus_nilai_judul', {judul: editingNilaiJudul, schoolCode: currentSchoolCode}); } 
                 else if(nilaiDB.some(n => n.judul === judul)) { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Judul ini sudah ada. Gunakan nama lain.", "error"); return; }
-                let newRecords = []; getDB('mc_students').forEach(s => { const scoreElem = document.getElementById('n_' + s.id); if(scoreElem && scoreElem.value) { let rec = { id: Date.now() + s.id, studentId: s.id, judul: judul, score: scoreElem.value }; nilaiDB.push(rec); newRecords.push(rec); } }); 
+                let newRecords = []; getMyStudents().forEach(s => { const scoreElem = document.getElementById('n_' + s.id); if(scoreElem && scoreElem.value) { let rec = { id: Date.now() + s.id, studentId: s.id, judul: judul, score: scoreElem.value, schoolCode: currentSchoolCode, guruUsername: currentUserUsername }; nilaiDB.push(rec); newRecords.push(rec); } }); 
                 if(newRecords.length === 0 && !editingNilaiJudul) { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Tidak ada nilai diinput!", "info"); return; } 
                 saveDB('mc_nilai', nilaiDB); if(newRecords.length > 0) syncToSheet('tambah_nilai_massal', newRecords); 
                 editingNilaiJudul = null; document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Nilai disimpan!", "success"); renderGuruNilai(); 
@@ -1516,14 +1559,14 @@ window.generateTabelTPATP = function() {
         window.hapusRiwayatNilai = async function(judul) {
             const isConfirm = await customConfirm(`Hapus SEMUA nilai untuk topik: ${judul}?`, "Peringatan Hapus"); if(!isConfirm) return;
             document.getElementById('loadingText').innerText = "Menghapus..."; document.getElementById('loadingOverlay').classList.remove('hidden'); 
-            setTimeout(() => { let nilaiDB = getDB('mc_nilai').filter(n => n.judul !== judul); saveDB('mc_nilai', nilaiDB); syncToSheet('hapus_nilai_judul', {judul: judul}); document.getElementById('loadingOverlay').classList.add('hidden'); renderGuruNilai(); }, 500);
+            setTimeout(() => { let nilaiDB = getDB('mc_nilai').filter(function(n){ return !(n.judul === judul && (!n.schoolCode || n.schoolCode === currentSchoolCode) && (!n.guruUsername || n.guruUsername === currentUserUsername)); }); saveDB('mc_nilai', nilaiDB); syncToSheet('hapus_nilai_judul', {judul: judul, schoolCode: currentSchoolCode, guruUsername: currentUserUsername}); document.getElementById('loadingOverlay').classList.add('hidden'); renderGuruNilai(); }, 500);
         }
 
         // =========================================================================
         // FITUR: JADWAL PELAJARAN
         // =========================================================================
         function renderJadwal() {
-            window.setPageTitle("Jadwal Pelajaran Kelas"); const jadwal = getDB('mc_jadwal'); const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; let dayHtml = '';
+            window.setPageTitle("Jadwal Pelajaran Kelas"); const jadwal = filterBySchool(getDB('mc_jadwal')); const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; let dayHtml = '';
             
             let hiddenTableHtml = `<table id="hiddenTabelJadwal" class="hidden" style="width: 100%; border-collapse: collapse; font-family: 'Times New Roman', Times, serif; font-size: 14px; border: 1px solid black;">
                 <thead><tr><th style="border: 1px solid black; padding: 8px;">Hari</th><th style="border: 1px solid black; padding: 8px;">Jam / Waktu</th><th style="border: 1px solid black; padding: 8px;">Mata Pelajaran</th><th style="border: 1px solid black; padding: 8px;">Nama Guru</th></tr></thead><tbody>`;
@@ -1552,12 +1595,12 @@ window.generateTabelTPATP = function() {
                 </div>
                 ${formHtml}<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${dayHtml}</div>${printAreaJadwal}</div>`;
         }
-        function addJadwal() { const hari = document.getElementById('jHari').value; const jam = document.getElementById('jJam').value; const mapel = document.getElementById('jMapel').value; const guru = document.getElementById('jGuru').value; if(!jam || !mapel) { customAlert("Kolom Jam dan Mapel wajib diisi!", "warning"); return; } document.getElementById('loadingText').innerText = "Menyimpan Jadwal..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let data = { id: Date.now(), hari: hari, jam: jam, mapel: mapel, guru: guru }; let jdwl = getDB('mc_jadwal'); jdwl.push(data); saveDB('mc_jadwal', jdwl); syncToSheet('tambah_jadwal', data); document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Jadwal Ditambahkan!", "success"); renderJadwal(); }, 300); }
+        function addJadwal() { const hari = document.getElementById('jHari').value; const jam = document.getElementById('jJam').value; const mapel = document.getElementById('jMapel').value; const guru = document.getElementById('jGuru').value; if(!jam || !mapel) { customAlert("Kolom Jam dan Mapel wajib diisi!", "warning"); return; } document.getElementById('loadingText').innerText = "Menyimpan Jadwal..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let data = { id: Date.now(), hari: hari, jam: jam, mapel: mapel, guru: guru, schoolCode: currentSchoolCode }; let jdwl = getDB('mc_jadwal'); jdwl.push(data); saveDB('mc_jadwal', jdwl); syncToSheet('tambah_jadwal', data); document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Jadwal Ditambahkan!", "success"); renderJadwal(); }, 300); }
         async function deleteJadwal(id) { const isConfirm = await customConfirm("Hapus jadwal ini?", "Konfirmasi"); if(!isConfirm) return; document.getElementById('loadingText').innerText = "Menghapus..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let jdwl = getDB('mc_jadwal').filter(j => j.id != id); saveDB('mc_jadwal', jdwl); syncToSheet('hapus_jadwal', { id: id }); document.getElementById('loadingOverlay').classList.add('hidden'); renderJadwal(); }, 300); }
 
         // --- MANAJEMEN SISWA ---
         function renderGuruSiswa() {
-            window.setPageTitle("Manajemen Siswa"); const students = getDB('mc_students'); let rowsHtml = [];
+            window.setPageTitle("Manajemen Siswa"); const students = getMyStudents(); let rowsHtml = [];
             students.forEach(s => { let sFoto = s.foto || 'https://via.placeholder.com/40'; rowsHtml.push('<tr class="border-b hover:bg-gray-50"><td class="p-3"><img src="' + sFoto + '" onclick="openImageModal(this.src)" class="w-10 h-10 rounded-full object-cover border shadow-sm cursor-pointer hover:opacity-80 transition"></td><td class="p-3 text-sm">' + s.nisn + '</td><td class="p-3 font-semibold">' + s.nama + '</td><td class="p-3 text-sm text-gray-600">' + s.kelas + '</td><td class="p-3 text-right whitespace-nowrap"><button onclick="editSiswa(' + s.id + ')" class="text-blue-500 hover:text-blue-700 mr-3 p-2 bg-blue-50 rounded-full transition" title="Edit"><i class="fas fa-edit"></i></button><button onclick="deleteSiswa(' + s.id + ')" class="text-red-500 hover:text-red-700 p-2 bg-red-50 rounded-full transition" title="Hapus"><i class="fas fa-trash"></i></button></td></tr>'); });
             let rows = rowsHtml.join(''); let emptyRows = '<tr><td colspan="5" class="p-6 text-center text-gray-500">Belum ada data siswa</td></tr>';
             let formTitle = editingSiswaId ? '<i class="fas fa-user-edit mr-2"></i> Update Data Siswa' : '<i class="fas fa-user-plus mr-2"></i> Tambah Siswa Baru'; let btnClass = editingSiswaId ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-600 hover:bg-blue-700'; let btnText = editingSiswaId ? '<i class="fas fa-save mr-2"></i> Simpan Perubahan' : '<i class="fas fa-user-plus mr-2"></i> Tambah Siswa'; let btnBatal = editingSiswaId ? '<button onclick="batalEditSiswa()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded font-bold">Batal Edit</button>' : '';
@@ -1602,18 +1645,18 @@ window.generateTabelTPATP = function() {
             </div>`;
             if(editingSiswaId) { let s = getDB('mc_students').find(x => x.id == editingSiswaId); if(s) { document.getElementById('sNisn').value = s.nisn; document.getElementById('sNama').value = s.nama; document.getElementById('sKelas').value = s.kelas; } }
         }
-        async function saveSiswa() { const nisn = document.getElementById('sNisn').value; const nama = document.getElementById('sNama').value; const kelas = document.getElementById('sKelas').value; const fotoFile = document.getElementById('sFoto').files[0]; if(!nisn || !nama) { customAlert("NISN dan Nama wajib diisi!", "warning"); return; } document.getElementById('loadingText').innerText = fotoFile ? "Mengupload Foto ke Drive..." : "Menyimpan Data..."; document.getElementById('loadingOverlay').classList.remove('hidden'); let finalFotoUrl = null; if(fotoFile) { try { let compressedBase64 = await compressImageToBase64(fotoFile, 400); finalFotoUrl = await uploadFileToDrive(compressedBase64, 'Foto_Siswa_' + nisn + '.jpg'); } catch(e) { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Gagal upload foto.", "error"); return; } } let students = getDB('mc_students'); if (editingSiswaId) { let idx = students.findIndex(x => x.id == editingSiswaId); if (idx > -1) { students[idx].nisn = nisn; students[idx].nama = nama; students[idx].kelas = kelas; if(finalFotoUrl) students[idx].foto = finalFotoUrl; saveDB('mc_students', students); syncToSheet('update_siswa', students[idx]); } editingSiswaId = null; setTimeout(() => { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Data diupdate!", "success"); renderGuruSiswa(); }, 400); } else { const newStudent = { id: Date.now(), nisn, nama, kelas, foto: finalFotoUrl || '' }; students.push(newStudent); saveDB('mc_students', students); syncToSheet('tambah_siswa', newStudent); setTimeout(() => { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Siswa baru ditambahkan!", "success"); renderGuruSiswa(); }, 400); } }
+        async function saveSiswa() { const nisn = document.getElementById('sNisn').value; const nama = document.getElementById('sNama').value; const kelas = document.getElementById('sKelas').value; const fotoFile = document.getElementById('sFoto').files[0]; if(!nisn || !nama) { customAlert("NISN dan Nama wajib diisi!", "warning"); return; } document.getElementById('loadingText').innerText = fotoFile ? "Mengupload Foto ke Drive..." : "Menyimpan Data..."; document.getElementById('loadingOverlay').classList.remove('hidden'); let finalFotoUrl = null; if(fotoFile) { try { let compressedBase64 = await compressImageToBase64(fotoFile, 400); finalFotoUrl = await uploadFileToDrive(compressedBase64, 'Foto_Siswa_' + nisn + '.jpg'); } catch(e) { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Gagal upload foto.", "error"); return; } } let students = getDB('mc_students'); if (editingSiswaId) { let idx = students.findIndex(x => x.id == editingSiswaId); if (idx > -1) { students[idx].nisn = nisn; students[idx].nama = nama; students[idx].kelas = kelas; if(finalFotoUrl) students[idx].foto = finalFotoUrl; saveDB('mc_students', students); syncToSheet('update_siswa', students[idx]); } editingSiswaId = null; setTimeout(() => { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Data diupdate!", "success"); renderGuruSiswa(); }, 400); } else { const newStudent = { id: Date.now(), nisn, nama, kelas, foto: finalFotoUrl || '', schoolCode: currentSchoolCode, guruUsername: currentUserUsername }; students.push(newStudent); saveDB('mc_students', students); syncToSheet('tambah_siswa', newStudent); setTimeout(() => { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Siswa baru ditambahkan!", "success"); renderGuruSiswa(); }, 400); } }
         function editSiswa(id) { editingSiswaId = id; renderGuruSiswa(); window.scrollTo({top: 0, behavior: 'smooth'}); } function batalEditSiswa() { editingSiswaId = null; renderGuruSiswa(); }
         async function deleteSiswa(id) { const isConfirm = await customConfirm("Hapus siswa ini secara permanen?", "Peringatan"); if(!isConfirm) return; document.getElementById('loadingText').innerText = "Menghapus..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let students = getDB('mc_students').filter(s => s.id != id); saveDB('mc_students', students); syncToSheet('hapus_siswa', { id: id }); if(editingSiswaId === id) editingSiswaId = null; document.getElementById('loadingOverlay').classList.add('hidden'); renderGuruSiswa(); }, 400); }
 
         // --- MANAJEMEN DOKUMENTASI ---
         function renderGuruDokumentasi() {
-            window.setPageTitle("Manajemen Dokumentasi"); const dok = getDB('mc_dokumentasi'); let rowsHtml = [];
+            window.setPageTitle("Manajemen Dokumentasi"); const dok = filterBySchool(getDB('mc_dokumentasi')); let rowsHtml = [];
             dok.forEach(d => { rowsHtml.push('<div class="bg-white rounded-xl shadow-sm border overflow-hidden transition hover:shadow-lg"><img src="' + (d.url || d.URL) + '" class="w-full h-40 object-cover cursor-pointer hover:opacity-80" onclick="openImageModal(this.src)"><div class="p-4"><h4 class="font-bold text-gray-800 mb-1">' + (d.keterangan || d.Keterangan) + '</h4><span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold uppercase tracking-wider">' + (d.kategori || d.Kategori) + '</span><button onclick="deleteDokumentasi(' + d.id + ')" class="mt-4 w-full bg-red-50 text-red-600 hover:bg-red-500 hover:text-white py-2 rounded text-sm font-bold transition"><i class="fas fa-trash mr-1"></i> Hapus Foto</button></div></div>'); });
             let rows = rowsHtml.join(''); let emptyRows = '<div class="col-span-full text-center text-gray-500 py-6 border-2 border-dashed rounded-xl">Belum ada dokumentasi.</div>';
             document.getElementById('main-content').innerHTML = `<div class="fade-in max-w-5xl mx-auto pb-20"><div class="bg-white p-6 rounded-xl shadow-sm border mb-8"><h3 class="font-bold text-gray-700 mb-4 border-b pb-2"><i class="fas fa-upload mr-2"></i> Upload Foto Baru</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><input type="text" id="dJudul" placeholder="Nama Kegiatan" class="border p-3 rounded-lg w-full bg-gray-50 font-semibold"><div class="flex items-center space-x-3 bg-gray-50 border p-2 rounded-lg"><label class="text-sm text-gray-600 font-bold ml-2">File:</label><input type="file" id="dFoto" accept="image/*" class="w-full text-sm"></div><button onclick="addDokumentasi()" class="md:col-span-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-bold shadow-md"><i class="fas fa-save mr-2"></i> Upload ke Drive</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">${rows || emptyRows}</div></div>`;
         }
-        async function addDokumentasi() { const judul = document.getElementById('dJudul').value; const fotoFile = document.getElementById('dFoto').files[0]; if(!judul || !fotoFile) { customAlert("Judul dan Foto wajib diisi!", "warning"); return; } document.getElementById('loadingText').innerText = "Mengupload ke Google Drive..."; document.getElementById('loadingOverlay').classList.remove('hidden'); try { let compressedBase64 = await compressImageToBase64(fotoFile, 1000); let finalFotoUrl = await uploadFileToDrive(compressedBase64, 'Carousel_' + Date.now() + '.jpg'); let data = { id: Date.now(), judul: judul, kategori: 'Carousel', url: finalFotoUrl }; let dok = getDB('mc_dokumentasi'); dok.push(data); saveDB('mc_dokumentasi', dok); syncToSheet('tambah_dokumentasi', data); document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Berhasil diupload ke Drive!", "success"); renderGuruDokumentasi(); } catch(e) { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Gagal upload.", "error"); } }
+        async function addDokumentasi() { const judul = document.getElementById('dJudul').value; const fotoFile = document.getElementById('dFoto').files[0]; if(!judul || !fotoFile) { customAlert("Judul dan Foto wajib diisi!", "warning"); return; } document.getElementById('loadingText').innerText = "Mengupload ke Google Drive..."; document.getElementById('loadingOverlay').classList.remove('hidden'); try { let compressedBase64 = await compressImageToBase64(fotoFile, 1000); let finalFotoUrl = await uploadFileToDrive(compressedBase64, 'Carousel_' + Date.now() + '.jpg'); let data = { id: Date.now(), judul: judul, kategori: 'Carousel', url: finalFotoUrl, schoolCode: currentSchoolCode }; let dok = getDB('mc_dokumentasi'); dok.push(data); saveDB('mc_dokumentasi', dok); syncToSheet('tambah_dokumentasi', data); document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Berhasil diupload ke Drive!", "success"); renderGuruDokumentasi(); } catch(e) { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Gagal upload.", "error"); } }
         async function deleteDokumentasi(id) { const isConfirm = await customConfirm("Hapus dokumentasi ini?", "Konfirmasi"); if(!isConfirm) return; document.getElementById('loadingText').innerText = "Menghapus..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let dok = getDB('mc_dokumentasi').filter(d => d.id != id); saveDB('mc_dokumentasi', dok); syncToSheet('hapus_dokumentasi', { id: id }); document.getElementById('loadingOverlay').classList.add('hidden'); renderGuruDokumentasi(); }, 300); }
 
        // --- TABUNGAN ---
@@ -1623,9 +1666,9 @@ function renderGuruTabungan() {
     let btnCetak = tabunganTab === 'cetak' ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 border border-teal-600 hover:bg-teal-50';
     let btnRekap = tabunganTab === 'rekap' ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 border border-teal-600 hover:bg-teal-50';
 
-    const students = getDB('mc_students');
-    const tabunganSiswa = getDB('mc_tabungan');
-    const tabunganGuru = getDB('mc_saldo_guru');
+    const students = getMyStudents();
+    const tabunganSiswa = filterBySchool(getDB('mc_tabungan'));
+    const tabunganGuru = filterBySchool(getDB('mc_saldo_guru'));
     let contentHTML = '';
 
     if (tabunganTab === 'harian') {
@@ -1668,7 +1711,7 @@ function renderGuruTabungan() {
 
         // Dropdown nama siswa disederhanakan (Hanya Nama)
         let studentOptions = '<option value="">-- Pilih Akun / Nama --</option><optgroup label="--- TRANSAKSI KAS GURU ---">';
-        const users = getDB('mc_users');
+        const users = getDB('mc_users').filter(function(u){ return !u.schoolCode || u.schoolCode === currentSchoolCode; });
         const gurus = users.filter(u => u.role === 'guru');
         if (gurus.length === 0) {
             studentOptions += `<option value="guru_${currentUserName}">${currentUserName}</option>`;
@@ -1829,8 +1872,8 @@ function renderGuruTabungan() {
 
 // FUNGSI BARU UNTUK CETAK REKAP SALDO KESELURUHAN
 window.cetakRekapSaldoSiswa = function() {
-    const students = getDB('mc_students');
-    const tabunganSiswa = getDB('mc_tabungan');
+    const students = getMyStudents();
+    const tabunganSiswa = filterBySchool(getDB('mc_tabungan'));
     let trHtml = '';
     let totalKolektif = 0;
 
@@ -1900,7 +1943,7 @@ window.cetakRekapSaldoSiswa = function() {
         element.classList.add('hidden'); // Sembunyikan kembali setelah selesai
     });
 };
-	function addTabungan() { const selectedAccount = document.getElementById('tStudent').value; const jenis = document.getElementById('tJenis').value; const jumlah = getRawNumber(document.getElementById('tJumlah').value); const inputDateVal = document.getElementById('tTanggalInput').value; if(!selectedAccount) { customAlert("Pilih Akun / Daftar Nama terlebih dahulu!", "warning"); return; } if(!jumlah || jumlah <= 0) { customAlert("Masukkan nominal rupiah yang valid!", "warning"); return; } if(!inputDateVal) { customAlert("Pilih tanggal!", "warning"); return; } let type = selectedAccount.startsWith('guru_') ? 'guru' : 'siswa'; let idOrName = selectedAccount.replace('guru_', '').replace('siswa_', ''); if(!editingTabunganId) { let isDup = false; if(type === 'guru') { isDup = getDB('mc_saldo_guru').some(t => t.namaGuru == idOrName && t.jenis == jenis && parseInt(t.jumlah) == jumlah && t.tanggal.split('T')[0] === inputDateVal); } else { isDup = getDB('mc_tabungan').some(t => t.studentId == idOrName && t.jenis == jenis && parseInt(t.jumlah) == jumlah && t.tanggal.split('T')[0] === inputDateVal); } if(isDup) { customAlert("DITOLAK! Transaksi ini sudah ada.", "error"); return; } } document.getElementById('loadingText').innerText = "Menyimpan Transaksi..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let tglISO = inputDateVal + "T" + new Date().toISOString().split('T')[1]; if (editingTabunganId) { if (editingTabunganType === 'guru') { let sg = getDB('mc_saldo_guru'); let idx = sg.findIndex(x => x.id == editingTabunganId); if(idx > -1) { sg[idx].jenis = jenis; sg[idx].jumlah = jumlah; sg[idx].tanggal = tglISO; } saveDB('mc_saldo_guru', sg); syncToSheet('update_saldo_guru', sg[idx]); } else { let st = getDB('mc_tabungan'); let idx = st.findIndex(x => x.id == editingTabunganId); if(idx > -1) { st[idx].jenis = jenis; st[idx].jumlah = jumlah; st[idx].tanggal = tglISO; } saveDB('mc_tabungan', st); syncToSheet('update_tabungan', st[idx]); } editingTabunganId = null; editingTabunganType = null; } else { let data = { id: Date.now(), jenis, jumlah, tanggal: tglISO }; if (type === 'guru') { data.namaGuru = idOrName; let sg = getDB('mc_saldo_guru'); sg.push(data); saveDB('mc_saldo_guru', sg); syncToSheet('tambah_saldo_guru', data); } else { data.studentId = idOrName; let st = getDB('mc_tabungan'); st.push(data); saveDB('mc_tabungan', st); syncToSheet('tambah_tabungan', data); } } document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Berhasil Disimpan!", "success"); renderGuruTabungan(); }, 400); }
+	function addTabungan() { const selectedAccount = document.getElementById('tStudent').value; const jenis = document.getElementById('tJenis').value; const jumlah = getRawNumber(document.getElementById('tJumlah').value); const inputDateVal = document.getElementById('tTanggalInput').value; if(!selectedAccount) { customAlert("Pilih Akun / Daftar Nama terlebih dahulu!", "warning"); return; } if(!jumlah || jumlah <= 0) { customAlert("Masukkan nominal rupiah yang valid!", "warning"); return; } if(!inputDateVal) { customAlert("Pilih tanggal!", "warning"); return; } let type = selectedAccount.startsWith('guru_') ? 'guru' : 'siswa'; let idOrName = selectedAccount.replace('guru_', '').replace('siswa_', ''); if(!editingTabunganId) { let isDup = false; if(type === 'guru') { isDup = getDB('mc_saldo_guru').some(t => t.namaGuru == idOrName && t.jenis == jenis && parseInt(t.jumlah) == jumlah && t.tanggal.split('T')[0] === inputDateVal); } else { isDup = getDB('mc_tabungan').some(t => t.studentId == idOrName && t.jenis == jenis && parseInt(t.jumlah) == jumlah && t.tanggal.split('T')[0] === inputDateVal); } if(isDup) { customAlert("DITOLAK! Transaksi ini sudah ada.", "error"); return; } } document.getElementById('loadingText').innerText = "Menyimpan Transaksi..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let tglISO = inputDateVal + "T" + new Date().toISOString().split('T')[1]; if (editingTabunganId) { if (editingTabunganType === 'guru') { let sg = getDB('mc_saldo_guru'); let idx = sg.findIndex(x => x.id == editingTabunganId); if(idx > -1) { sg[idx].jenis = jenis; sg[idx].jumlah = jumlah; sg[idx].tanggal = tglISO; } saveDB('mc_saldo_guru', sg); syncToSheet('update_saldo_guru', sg[idx]); } else { let st = getDB('mc_tabungan'); let idx = st.findIndex(x => x.id == editingTabunganId); if(idx > -1) { st[idx].jenis = jenis; st[idx].jumlah = jumlah; st[idx].tanggal = tglISO; } saveDB('mc_tabungan', st); syncToSheet('update_tabungan', st[idx]); } editingTabunganId = null; editingTabunganType = null; } else { let data = { id: Date.now(), jenis, jumlah, tanggal: tglISO, schoolCode: currentSchoolCode }; if (type === 'guru') { data.namaGuru = idOrName; let sg = getDB('mc_saldo_guru'); sg.push(data); saveDB('mc_saldo_guru', sg); syncToSheet('tambah_saldo_guru', data); } else { data.studentId = idOrName; let st = getDB('mc_tabungan'); st.push(data); saveDB('mc_tabungan', st); syncToSheet('tambah_tabungan', data); } } document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Berhasil Disimpan!", "success"); renderGuruTabungan(); }, 400); }
         function editTabungan(id, type) { editingTabunganId = id; editingTabunganType = type; tabunganTab = 'harian'; renderGuruTabungan(); window.scrollTo({top: 0, behavior: 'smooth'}); } function batalEditTabungan() { editingTabunganId = null; editingTabunganType = null; renderGuruTabungan(); }
         async function deleteTabungan(id, type) { const isConfirm = await customConfirm("MENGHAPUS PERMANEN transaksi ini?", "Konfirmasi Hapus"); if(!isConfirm) return; document.getElementById('loadingText').innerText = "Menghapus..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { if(type === 'guru') { let sg = getDB('mc_saldo_guru').filter(t => t.id != id); saveDB('mc_saldo_guru', sg); syncToSheet('hapus_saldo_guru', { id: id }); } else { let st = getDB('mc_tabungan').filter(t => t.id != id); saveDB('mc_tabungan', st); syncToSheet('hapus_tabungan', { id: id }); } if(editingTabunganId === id) { editingTabunganId = null; editingTabunganType = null; } document.getElementById('loadingOverlay').classList.add('hidden'); renderGuruTabungan(); }, 400); }
    
@@ -1908,7 +1951,7 @@ window.cetakRekapSaldoSiswa = function() {
         // --- MANAJEMEN DAFTAR HADIR (GURU) ---
         function renderGuruAbsen() {
             window.setPageTitle("Daftar Hadir / Kehadiran Kelas"); let btnHarian = absenTab === 'harian' ? 'bg-green-600 text-white' : 'bg-white text-green-600 border border-green-600 hover:bg-green-50'; let btnRekap = absenTab === 'rekap' ? 'bg-green-600 text-white' : 'bg-white text-green-600 border border-green-600 hover:bg-green-50'; let btnCetak = absenTab === 'cetak' ? 'bg-green-600 text-white' : 'bg-white text-green-600 border border-green-600 hover:bg-green-50';
-            const students = getDB('mc_students'); const absen = getDB('mc_absen'); let contentHTML = '';
+            const students = getMyStudents(); const absen = filterBySchool(getDB('mc_absen')); let contentHTML = '';
             if (absenTab === 'harian') {
                 const today = new Date().toISOString().split('T')[0]; let listHtmlArr = [];
                 students.forEach(s => { let sFoto = s.foto || 'https://via.placeholder.com/40'; listHtmlArr.push('<div class="absen-item border-b p-4 flex flex-col md:flex-row md:items-center justify-between hover:bg-gray-50"><div class="font-semibold mb-3 md:mb-0 flex items-center"><img src="' + sFoto + '" onclick="openImageModal(this.src)" class="w-8 h-8 rounded-full object-cover border border-gray-300 mr-3 cursor-pointer hover:opacity-80">' + s.nama + '</div><div class="flex space-x-2"><label><input type="radio" name="abs_' + s.id + '" value="Hadir" class="absen-radio" checked><div class="absen-label text-gray-500 bg-gray-100 shadow-sm border px-4 py-2 font-semibold">Hadir</div></label><label><input type="radio" name="abs_' + s.id + '" value="Sakit" class="absen-radio"><div class="absen-label text-gray-500 bg-gray-100 shadow-sm border px-4 py-2 font-semibold">Sakit</div></label><label><input type="radio" name="abs_' + s.id + '" value="Izin" class="absen-radio"><div class="absen-label text-gray-500 bg-gray-100 shadow-sm border px-4 py-2 font-semibold">Izin</div></label><label><input type="radio" name="abs_' + s.id + '" value="Tanpa Keterangan" class="absen-radio"><div class="absen-label text-gray-500 bg-gray-100 shadow-sm border px-4 py-2 font-semibold">TK</div></label></div></div>'); });
@@ -1949,7 +1992,7 @@ window.cetakRekapSaldoSiswa = function() {
             document.getElementById('loadingText').innerText = "Menyimpan Kehadiran..."; document.getElementById('loadingOverlay').classList.remove('hidden');
             setTimeout(() => {
                 const tanggal = document.getElementById('aDate').value; let absenDB = getDB('mc_absen'); let newRecords = [];
-                getDB('mc_students').forEach(s => { const statusElem = document.querySelector('input[name="abs_' + s.id + '"]:checked'); if(statusElem) { let rec = { id: Date.now() + s.id, studentId: s.id, tanggal: tanggal, status: statusElem.value }; absenDB.push(rec); newRecords.push(rec); } });
+                getMyStudents().forEach(s => { const statusElem = document.querySelector('input[name="abs_' + s.id + '"]:checked'); if(statusElem) { let rec = { id: Date.now() + s.id, studentId: s.id, tanggal: tanggal, status: statusElem.value, schoolCode: currentSchoolCode, guruUsername: currentUserUsername }; absenDB.push(rec); newRecords.push(rec); } });
                 saveDB('mc_absen', absenDB); syncToSheet('tambah_absen_massal', newRecords); document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Absensi berhasil disimpan!", "success", "Berhasil"); renderGuruAbsen();
             }, 300);
         }
@@ -1957,12 +2000,12 @@ window.cetakRekapSaldoSiswa = function() {
         // --- TAMPILAN SISWA ---
         function renderSiswaProfil() { window.setPageTitle("Profil Saya"); const saya = getDB('mc_students').find(s => s.id == currentStudentId) || {nama: 'Data Tidak Ditemukan', nisn: '-', foto: ''}; document.getElementById('main-content').innerHTML = `<div class="fade-in max-w-3xl mx-auto"><div class="bg-white p-8 rounded-xl shadow border text-center relative overflow-hidden"><div class="absolute top-0 left-0 w-full h-32 bg-blue-600 rounded-t-xl"></div><div class="relative w-32 h-32 mx-auto mt-10 mb-4 z-10"><img id="imgPreview" src="${saya.foto || 'https://via.placeholder.com/150'}" onclick="openImageModal(this.src)" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg bg-white cursor-pointer hover:opacity-80"><label class="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 shadow border-2 border-white"><i class="fas fa-camera"></i><input type="file" class="hidden" accept="image/*" onchange="previewUpdateFoto(event)"></label></div><h2 class="text-3xl font-bold text-gray-800 relative z-10 mt-2">${saya.nama}</h2><p class="text-gray-500 mb-3 relative z-10 font-semibold">NISN: ${saya.nisn}</p><span class="inline-block bg-blue-100 text-blue-800 px-4 py-1 rounded-full text-sm font-bold shadow-sm relative z-10">Kelas: ${saya.kelas || '-'}</span></div></div>`; }
         async function previewUpdateFoto(event) { const file = event.target.files[0]; if(!file) return; document.getElementById('loadingText').innerText = "Mengupload ke Google Drive..."; document.getElementById('loadingOverlay').classList.remove('hidden'); try { let compressedBase64 = await compressImageToBase64(file, 400); let finalFotoUrl = await uploadFileToDrive(compressedBase64, 'Foto_Siswa_' + currentStudentId + '.jpg'); let students = getDB('mc_students'); let idx = students.findIndex(s => s.id == currentStudentId); if(idx !== -1) { students[idx].foto = finalFotoUrl; saveDB('mc_students', students); syncToSheet('update_foto', { id: currentStudentId, foto: finalFotoUrl }); document.getElementById('imgPreview').src = finalFotoUrl; document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Foto profil berhasil diperbarui!", "success"); } else { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Data siswa tidak sinkron.", "error"); } } catch(e) { document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Gagal upload.", "error"); } }
-        function renderSiswaNilai() { window.setPageTitle("Riwayat Nilai"); const nilai = getDB('mc_nilai').filter(n => n.studentId == currentStudentId); let rowsHtmlArr = []; nilai.forEach(n => rowsHtmlArr.push('<tr class="border-b hover:bg-gray-50"><td class="p-4 font-semibold text-gray-700"><i class="fas fa-file-alt text-yellow-500 mr-2"></i> ' + n.judul + '</td><td class="p-4 font-bold text-blue-600 text-right text-lg">' + n.score + '</td></tr>')); document.getElementById('main-content').innerHTML = `<div class="fade-in max-w-4xl mx-auto bg-white shadow-sm border rounded-xl overflow-hidden"><table class="w-full"><thead class="bg-yellow-50 border-b border-yellow-100"><tr><th class="p-4 text-left text-yellow-800">Topik Penilaian</th><th class="p-4 text-right text-yellow-800">Skor / Nilai</th></tr></thead><tbody>${rowsHtmlArr.join('') || '<tr><td colspan="2" class="p-6 text-center text-gray-400">Belum ada nilai yang diinput guru</td></tr>'}</tbody></table></div>`; }
-        function renderSiswaAbsen() { window.setPageTitle("Riwayat Kehadiran"); const absen = getDB('mc_absen').filter(a => a.studentId == currentStudentId); let rowsHtmlArr = []; absen.forEach(a => { let isHadir = a.status === 'Hadir'; let color = isHadir ? 'text-green-600' : 'text-red-500'; let icon = isHadir ? 'fa-check-circle' : 'fa-times-circle'; rowsHtmlArr.push('<tr class="border-b hover:bg-gray-50"><td class="p-4 font-semibold text-gray-600"><i class="fas fa-calendar-alt text-gray-300 mr-2"></i> ' + formatDateID(a.tanggal) + '</td><td class="p-4 font-bold ' + color + ' text-right"><i class="fas ' + icon + ' mr-1"></i> ' + a.status + '</td></tr>'); }); document.getElementById('main-content').innerHTML = `<div class="fade-in max-w-4xl mx-auto bg-white shadow-sm border rounded-xl overflow-hidden"><table class="w-full"><thead class="bg-green-50 border-b border-green-100"><tr><th class="p-4 text-left text-green-800">Tanggal</th><th class="p-4 text-right text-green-800">Status Kehadiran</th></tr></thead><tbody>${rowsHtmlArr.join('') || '<tr><td colspan="2" class="p-6 text-center text-gray-400">Belum ada riwayat kehadiran</td></tr>'}</tbody></table></div>`; }
-        function renderSiswaTabungan() { window.setPageTitle("Buku Tabungan"); const tabungan = getDB('mc_tabungan').filter(t => t.studentId == currentStudentId); let saldo = 0; let rowsHtmlArr = []; tabungan.forEach(t => { if(t.jenis === 'Masuk') saldo += parseInt(t.jumlah); else saldo -= parseInt(t.jumlah); let isMasuk = t.jenis === 'Masuk'; rowsHtmlArr.push('<tr class="border-b hover:bg-gray-50"><td class="p-4"><span class="' + (isMasuk ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600') + ' px-3 py-1 rounded-full text-xs font-bold uppercase block w-max mb-1"><i class="fas ' + (isMasuk ? 'fa-arrow-down' : 'fa-arrow-up') + ' mr-1"></i> ' + t.jenis + '</span><span class="text-xs text-gray-500">' + formatDateID(t.tanggal) + '</span></td><td class="p-4 font-bold text-gray-700 text-right text-lg align-top">Rp ' + parseInt(t.jumlah).toLocaleString('id-ID') + '</td></tr>'); }); document.getElementById('main-content').innerHTML = `<div class="fade-in max-w-4xl mx-auto"><div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white text-center shadow-lg mb-6 relative overflow-hidden"><i class="fas fa-wallet absolute text-white opacity-10 text-9xl -right-10 -top-5"></i><p class="text-blue-200 text-sm font-bold tracking-widest uppercase mb-1 relative z-10">Total Saldo Aktif</p><h2 class="text-5xl font-extrabold relative z-10 drop-shadow-md">Rp ${saldo.toLocaleString('id-ID')}</h2></div><div class="bg-white rounded-xl shadow-sm border overflow-hidden"><div class="bg-gray-50 p-4 border-b font-bold text-gray-700"><i class="fas fa-list-ul mr-2"></i> Riwayat Transaksi</div><table class="w-full"><tbody>${rowsHtmlArr.join('') || '<tr><td colspan="2" class="p-6 text-center text-gray-400">Belum ada riwayat tabungan</td></tr>'}</tbody></table></div></div>`; }
+        function renderSiswaNilai() { window.setPageTitle("Riwayat Nilai"); const nilai = getDB('mc_nilai').filter(function(n){ return n.studentId == currentStudentId && (!n.schoolCode || n.schoolCode === currentSchoolCode); }); let rowsHtmlArr = []; nilai.forEach(n => rowsHtmlArr.push('<tr class="border-b hover:bg-gray-50"><td class="p-4 font-semibold text-gray-700"><i class="fas fa-file-alt text-yellow-500 mr-2"></i> ' + n.judul + '</td><td class="p-4 font-bold text-blue-600 text-right text-lg">' + n.score + '</td></tr>')); document.getElementById('main-content').innerHTML = `<div class="fade-in max-w-4xl mx-auto bg-white shadow-sm border rounded-xl overflow-hidden"><table class="w-full"><thead class="bg-yellow-50 border-b border-yellow-100"><tr><th class="p-4 text-left text-yellow-800">Topik Penilaian</th><th class="p-4 text-right text-yellow-800">Skor / Nilai</th></tr></thead><tbody>${rowsHtmlArr.join('') || '<tr><td colspan="2" class="p-6 text-center text-gray-400">Belum ada nilai yang diinput guru</td></tr>'}</tbody></table></div>`; }
+        function renderSiswaAbsen() { window.setPageTitle("Riwayat Kehadiran"); const absen = getDB('mc_absen').filter(function(a){ return a.studentId == currentStudentId && (!a.schoolCode || a.schoolCode === currentSchoolCode); }); let rowsHtmlArr = []; absen.forEach(a => { let isHadir = a.status === 'Hadir'; let color = isHadir ? 'text-green-600' : 'text-red-500'; let icon = isHadir ? 'fa-check-circle' : 'fa-times-circle'; rowsHtmlArr.push('<tr class="border-b hover:bg-gray-50"><td class="p-4 font-semibold text-gray-600"><i class="fas fa-calendar-alt text-gray-300 mr-2"></i> ' + formatDateID(a.tanggal) + '</td><td class="p-4 font-bold ' + color + ' text-right"><i class="fas ' + icon + ' mr-1"></i> ' + a.status + '</td></tr>'); }); document.getElementById('main-content').innerHTML = `<div class="fade-in max-w-4xl mx-auto bg-white shadow-sm border rounded-xl overflow-hidden"><table class="w-full"><thead class="bg-green-50 border-b border-green-100"><tr><th class="p-4 text-left text-green-800">Tanggal</th><th class="p-4 text-right text-green-800">Status Kehadiran</th></tr></thead><tbody>${rowsHtmlArr.join('') || '<tr><td colspan="2" class="p-6 text-center text-gray-400">Belum ada riwayat kehadiran</td></tr>'}</tbody></table></div>`; }
+        function renderSiswaTabungan() { window.setPageTitle("Buku Tabungan"); const tabungan = getDB('mc_tabungan').filter(function(t){ return t.studentId == currentStudentId && (!t.schoolCode || t.schoolCode === currentSchoolCode); }); let saldo = 0; let rowsHtmlArr = []; tabungan.forEach(t => { if(t.jenis === 'Masuk') saldo += parseInt(t.jumlah); else saldo -= parseInt(t.jumlah); let isMasuk = t.jenis === 'Masuk'; rowsHtmlArr.push('<tr class="border-b hover:bg-gray-50"><td class="p-4"><span class="' + (isMasuk ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600') + ' px-3 py-1 rounded-full text-xs font-bold uppercase block w-max mb-1"><i class="fas ' + (isMasuk ? 'fa-arrow-down' : 'fa-arrow-up') + ' mr-1"></i> ' + t.jenis + '</span><span class="text-xs text-gray-500">' + formatDateID(t.tanggal) + '</span></td><td class="p-4 font-bold text-gray-700 text-right text-lg align-top">Rp ' + parseInt(t.jumlah).toLocaleString('id-ID') + '</td></tr>'); }); document.getElementById('main-content').innerHTML = `<div class="fade-in max-w-4xl mx-auto"><div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white text-center shadow-lg mb-6 relative overflow-hidden"><i class="fas fa-wallet absolute text-white opacity-10 text-9xl -right-10 -top-5"></i><p class="text-blue-200 text-sm font-bold tracking-widest uppercase mb-1 relative z-10">Total Saldo Aktif</p><h2 class="text-5xl font-extrabold relative z-10 drop-shadow-md">Rp ${saldo.toLocaleString('id-ID')}</h2></div><div class="bg-white rounded-xl shadow-sm border overflow-hidden"><div class="bg-gray-50 p-4 border-b font-bold text-gray-700"><i class="fas fa-list-ul mr-2"></i> Riwayat Transaksi</div><table class="w-full"><tbody>${rowsHtmlArr.join('') || '<tr><td colspan="2" class="p-6 text-center text-gray-400">Belum ada riwayat tabungan</td></tr>'}</tbody></table></div></div>`; }
 
         function renderDashboardHome() {
-            window.setPageTitle("Dashboard Utama"); const dok = getDB('mc_dokumentasi'); const carousels = dok.filter(d => (d.Kategori || d.kategori || '').toLowerCase() === 'carousel'); let carouselHTML = '';
+            window.setPageTitle("Dashboard Utama"); const dok = filterBySchool(getDB('mc_dokumentasi')); const carousels = dok.filter(d => (d.Kategori || d.kategori || '').toLowerCase() === 'carousel'); let carouselHTML = '';
             if(carousels.length > 0) { let slidesArr = []; carousels.forEach((c, idx) => { let activeClass = idx === 0 ? 'active' : ''; let titleText = c.keterangan || c.Keterangan || 'Kegiatan Kelas'; let imgUrl = c.url || c.URL; slidesArr.push('<div class="carousel-slide ' + activeClass + ' relative w-full h-full"><img src="' + imgUrl + '" class="w-full h-full object-contain"><div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 pt-12 text-white"><h3 class="font-bold text-lg text-shadow">' + titleText + '</h3></div></div>'); }); carouselHTML = slidesArr.join(''); } else { carouselHTML = `<div class="carousel-slide active relative w-full h-full"><img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-contain"><div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 pt-12 text-white"><h3 class="font-bold text-lg">Lingkungan Sekolah</h3></div></div>`; }
             let monthOptions = ''; const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']; const currMonth = new Date().getMonth(); months.forEach((m, i) => { monthOptions += '<option value="' + i + '" ' + (i === currMonth ? 'selected' : '') + '>' + m + '</option>'; });
             let yearOptions = ''; const currYear = new Date().getFullYear(); [2024, 2025, 2026, 2027].forEach(y => { yearOptions += '<option value="' + y + '" ' + (y === currYear ? 'selected' : '') + '>' + y + '</option>'; });
@@ -1974,7 +2017,7 @@ window.cetakRekapSaldoSiswa = function() {
         }
 
         window.updateChart = function() {
-            const absen = getDB('mc_absen'); const students = getDB('mc_students'); const month = parseInt(document.getElementById('chartMonth').value); const year = parseInt(document.getElementById('chartYear').value);
+            const absen = filterBySchool(getDB('mc_absen')); const students = getMyStudents(); const month = parseInt(document.getElementById('chartMonth').value); const year = parseInt(document.getElementById('chartYear').value);
             let uniqueDatesClass = new Set(); absen.forEach(a => { const d = new Date(a.tanggal); if(d.getMonth() === month && d.getFullYear() === year) uniqueDatesClass.add(a.tanggal); }); let hariEfektif = uniqueDatesClass.size;
             let filteredAbsen = absen.filter(a => { const d = new Date(a.tanggal); return d.getMonth() === month && d.getFullYear() === year; }); if (currentUserRole === 'siswa') { filteredAbsen = filteredAbsen.filter(a => a.studentId == currentStudentId); }
             let counts = { h: 0, s: 0, i: 0, t: 0 }; filteredAbsen.forEach(a => { if(a.status === 'Hadir') counts.h++; if(a.status === 'Sakit') counts.s++; if(a.status === 'Izin') counts.i++; if(a.status === 'Tanpa Keterangan') counts.t++; });
@@ -1992,7 +2035,14 @@ window.cetakRekapSaldoSiswa = function() {
             document.getElementById('absenDetails').innerHTML = detailHtml;
         }
 
-        async function confirmLogout() { const isConfirm = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi?", "Konfirmasi Keluar"); if(isConfirm) { rmSafe('mc_session'); currentUserRole = null; currentUserName = null; currentUserUsername = null; window.navTo('renderLogin'); } }
+        async function confirmLogout() {
+            const isConfirm = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi?", "Konfirmasi Keluar");
+            if(isConfirm) {
+                rmSafe('mc_session');
+                currentUserRole = null; currentUserName = null; currentUserUsername = null; currentSchoolCode = null;
+                window.navTo('renderLogin');
+            }
+        }
         let slideIndex = 0; let carouselInterval;
         function startCarousel() { clearInterval(carouselInterval); carouselInterval = setInterval(() => { let slides = document.getElementsByClassName("carousel-slide"); if(slides.length === 0) return; for (let i = 0; i < slides.length; i++) slides[i].className = slides[i].className.replace(" active", ""); slideIndex++; if (slideIndex > slides.length) slideIndex = 1; slides[slideIndex - 1].className += " active"; }, 4000); }
         window.onload = function() { initDB(); if(!loadSession()) { renderLogin(); } };
@@ -2382,7 +2432,7 @@ WAJIB hasilkan output DALAM FORMAT JSON murni (Tanpa markdown \`\`\`json). Gunak
 // =========================================================================
 window.renderGuruKalender = function() {
     window.setPageTitle("Kalender Pendidikan");
-    const kalenderDb = getDB('mc_kalender').filter(k => k.username === currentUserUsername);
+    const kalenderDb = getDB('mc_kalender').filter(function(k){ return k.username === currentUserUsername && (!k.schoolCode || k.schoolCode === currentSchoolCode); });
     let rowsHtml = [];
     
     kalenderDb.forEach(k => {
@@ -2437,7 +2487,7 @@ window.addKalender = async function() {
         let compressedBase64 = await compressImageToBase64(fotoFile, 1200); 
         let finalFotoUrl = await uploadFileToDrive(compressedBase64, 'Kalender_' + Date.now() + '.jpg');
         
-        let data = { id: Date.now(), username: currentUserUsername, judul: judul, url: finalFotoUrl };
+        let data = { id: Date.now(), username: currentUserUsername, judul: judul, url: finalFotoUrl, schoolCode: currentSchoolCode };
         let kalenderDb = getDB('mc_kalender');
         kalenderDb.push(data);
         
@@ -2478,7 +2528,7 @@ let editingAgendaId = null;
 window.renderGuruAgenda = function() {
     window.setPageTitle("Agenda Harian Guru");
     const kurikulumDB = getDB('mc_kurikulum');
-    const agendaDB = getDB('mc_agenda').filter(a => a.username === currentUserUsername).sort((a,b) => b.id - a.id);
+    const agendaDB = getDB('mc_agenda').filter(function(a){ return a.username === currentUserUsername && (!a.schoolCode || a.schoolCode === currentSchoolCode); }).sort((a,b) => b.id - a.id);
     
     let kelasUnik = [...new Set(kurikulumDB.map(item => item.Kelas))].sort();
     let kelasOptions = '<option value="">-- Pilih Kelas --</option>';
@@ -2699,6 +2749,7 @@ window.saveAgenda = function() {
     document.getElementById('loadingOverlay').classList.remove('hidden');
     
     setTimeout(() => {
+        data.schoolCode = currentSchoolCode;
         let db = getDB('mc_agenda');
         if(editingAgendaId) {
             let idx = db.findIndex(a => a.id == editingAgendaId);
@@ -3297,7 +3348,7 @@ window.exportMultiTableToExcel = function(containerId, filenamePrefix) {
 // =========================================================================
 
 window.downloadTemplateSiswa = function() {
-    const students = getDB('mc_students');
+    const students = getMyStudents();
     let dataToExport = [];
     
     if(students.length > 0) {
@@ -3366,7 +3417,9 @@ window.importSiswaExcel = function(event) {
                             nisn: String(nisn).trim(),
                             nama: String(nama).trim(),
                             kelas: String(kelas).trim(),
-                            foto: String(foto).trim() // Link foto sekarang diproses
+                            foto: String(foto).trim(),
+                            schoolCode: currentSchoolCode,
+                            guruUsername: currentUserUsername
                         };
                         studentsDB.push(newS);
                         newRecords.push(newS);
@@ -3542,6 +3595,105 @@ window.generateTabelKKTP = function() {
         document.getElementById('kktpArea').classList.remove('hidden'); 
         document.getElementById('loadingOverlay').classList.add('hidden');
     }, 600);
+};
+// =========================================================================
+// FITUR CETAK REKAP ABSEN SEMESTER
+// =========================================================================
+window.cetakRekapAbsenSemester = function() {
+    const students = getMyStudents();
+    const absen = filterBySchool(getDB('mc_absen'));
+    let trHtml = '';
+
+    // 1. Kalkulasi data absen tiap siswa untuk Semester 1 & 2
+    students.forEach((s, index) => {
+        let count = { smt1: {h:0, s:0, i:0, t:0}, smt2: {h:0, s:0, i:0, t:0} };
+        absen.filter(a => a.studentId == s.id).forEach(a => {
+            // Semester 1 = Juli - Desember (Bulan ke 6 - 11 di JavaScript)
+            let d = new Date(a.tanggal);
+            let isSmt1 = d.getMonth() >= 6; 
+            let tgt = isSmt1 ? count.smt1 : count.smt2;
+            
+            if(a.status === 'Hadir') tgt.h++;
+            else if(a.status === 'Sakit') tgt.s++;
+            else if(a.status === 'Izin') tgt.i++;
+            else tgt.t++;
+        });
+
+        trHtml += `
+            <tr style="border: 1px solid black;">
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${index + 1}</td>
+                <td style="border: 1px solid black; padding: 6px;">${s.nama}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${count.smt1.h}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${count.smt1.s}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${count.smt1.i}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${count.smt1.t}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${count.smt2.h}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${count.smt2.s}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${count.smt2.i}</td>
+                <td style="border: 1px solid black; padding: 6px; text-align: center;">${count.smt2.t}</td>
+            </tr>`;
+    });
+
+    // 2. Buat elemen HTML sementara untuk dirender ke PDF
+    const printAreaId = 'printAreaRekapAbsenSmt';
+    let printDiv = document.getElementById(printAreaId);
+    if (!printDiv) {
+        printDiv = document.createElement('div');
+        printDiv.id = printAreaId;
+        document.body.appendChild(printDiv);
+    }
+
+    let currentYear = new Date().getFullYear();
+    let tahunAjaranText = currentYear + '/' + (currentYear+1);
+
+    printDiv.innerHTML = `
+        <div style="font-family:'Times New Roman', serif; color: black; background: white; padding: 20px;">
+            ${window.getKopSurat()}
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="text-transform: uppercase; text-decoration: underline; margin-bottom: 5px; font-weight: bold;">REKAPITULASI ABSENSI SEMESTER</h2>
+                <p style="margin-top: 0; font-weight: bold;">Tahun Pelajaran: ${tahunAjaranText}</p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid black; font-size: 12px;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th rowspan="2" style="border: 1px solid black; padding: 8px;">NO</th>
+                        <th rowspan="2" style="border: 1px solid black; padding: 8px;">NAMA SISWA</th>
+                        <th colspan="4" style="border: 1px solid black; padding: 8px; text-align: center;">Semester 1 (Jul-Des)</th>
+                        <th colspan="4" style="border: 1px solid black; padding: 8px; text-align: center;">Semester 2 (Jan-Jun)</th>
+                    </tr>
+                    <tr style="background-color: #f2f2f2;">
+                        <th style="border: 1px solid black; padding: 4px; text-align: center; width: 5%;">H</th>
+                        <th style="border: 1px solid black; padding: 4px; text-align: center; width: 5%;">S</th>
+                        <th style="border: 1px solid black; padding: 4px; text-align: center; width: 5%;">I</th>
+                        <th style="border: 1px solid black; padding: 4px; text-align: center; width: 5%;">TK</th>
+                        <th style="border: 1px solid black; padding: 4px; text-align: center; width: 5%;">H</th>
+                        <th style="border: 1px solid black; padding: 4px; text-align: center; width: 5%;">S</th>
+                        <th style="border: 1px solid black; padding: 4px; text-align: center; width: 5%;">I</th>
+                        <th style="border: 1px solid black; padding: 4px; text-align: center; width: 5%;">TK</th>
+                    </tr>
+                </thead>
+                <tbody>${trHtml}</tbody>
+            </table>
+            <br>${window.getTandaTangan()}
+        </div>
+    `;
+
+    // 3. Konfigurasi dan Eksekusi html2pdf
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: 'Rekap_Absen_Semester.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } // Format lanskap agar tabel lebar muat
+    };
+
+    document.getElementById('loadingText').innerText = "Membuat PDF Rekap..."; 
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+
+    html2pdf().set(opt).from(printDiv).save().then(() => {
+        printDiv.innerHTML = ''; // Bersihkan elemen setelah cetak
+        document.getElementById('loadingOverlay').classList.add('hidden');
+    });
 };
 </script>
 </body>
