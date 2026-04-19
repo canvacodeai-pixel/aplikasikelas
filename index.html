@@ -520,7 +520,7 @@ window.getTandaTangan = function() {
 
         function renderLogin() {
             var savedSchool = getSafe('mc_last_school') || '';
-            appDiv.innerHTML = '<div class="flex items-center justify-center h-screen p-4 fade-in overflow-auto"><div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border-t-8 border-blue-600"><div class="text-center mb-6"><i class="fas fa-graduation-cap text-5xl text-blue-600 mb-4"></i><h1 class="text-2xl font-bold text-gray-800">E-Pajar</h1><p class="text-sm text-gray-500">Perangkat Ajar Elektronik</p></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700"><i class="fas fa-school mr-1 text-blue-500"></i> Kode Sekolah</label><input type="text" id="loginSchoolCode" value="' + savedSchool + '" class="mt-1 block w-full px-4 py-2 border-2 border-blue-200 rounded-md font-bold" placeholder="Contoh: SDN001" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"><p class="text-xs text-gray-400 mt-1">Kode unik sekolah Anda (hubungi admin jika belum punya)</p></div><div><label class="block text-sm font-medium text-gray-700">Username / NISN</label><input type="text" id="loginUsername" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Ketik username"></div><div><label class="block text-sm font-medium text-gray-700">Password</label><input type="password" id="loginPassword" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Ketik password"></div><div><label class="block text-sm font-medium text-gray-700">Masuk Sebagai</label><select id="loginRole" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md bg-white"><option value="guru">Guru</option><option value="siswa">Siswa / Orang Tua</option></select></div><button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg mt-4 shadow-md"><i class="fas fa-sign-in-alt mr-2"></i> Masuk Aplikasi</button></div></div></div>';
+            appDiv.innerHTML = '<div class="flex items-center justify-center h-screen p-4 fade-in overflow-auto"><div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border-t-8 border-blue-600"><div class="text-center mb-6"><div class="w-20 h-20 mx-auto bg-blue-600 rounded-full flex items-center justify-center mb-4 shadow-lg"><i class="fas fa-graduation-cap text-4xl text-white"></i></div><h1 class="text-3xl font-extrabold text-gray-800 tracking-wide">E-Pajar</h1><p class="text-sm font-bold text-blue-600 mt-1 uppercase tracking-widest">Perangkat Ajar Elektronik</p></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700"><i class="fas fa-school mr-1 text-blue-500"></i> Kode Sekolah</label><input type="text" id="loginSchoolCode" value="' + savedSchool + '" class="mt-1 block w-full px-4 py-2 border-2 border-blue-200 rounded-md font-bold" placeholder="Contoh: SDN001" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"><p class="text-xs text-gray-400 mt-1">Kode unik sekolah Anda (hubungi admin jika belum punya)</p></div><div><label class="block text-sm font-medium text-gray-700">Username / NISN</label><input type="text" id="loginUsername" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Ketik username"></div><div><label class="block text-sm font-medium text-gray-700">Password</label><input type="password" id="loginPassword" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Ketik password"></div><div><label class="block text-sm font-medium text-gray-700">Masuk Sebagai</label><select id="loginRole" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md bg-white"><option value="guru">Guru</option><option value="siswa">Siswa / Orang Tua</option></select></div><button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg mt-4 shadow-md"><i class="fas fa-sign-in-alt mr-2"></i> Masuk Aplikasi</button></div></div></div>';
         }
 
         async function executeSync(isSilent = false) {
@@ -664,7 +664,7 @@ window.getTandaTangan = function() {
                 `;
             }
             appDiv.innerHTML = `<div class="flex h-screen bg-gray-100 overflow-hidden"><div id="sidebarOverlay" class="overlay" onclick="window.toggleSidebar()"></div><aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 z-40 w-64 bg-blue-800 text-white transform -translate-x-full md:translate-x-0 md:static md:flex-shrink-0 shadow-xl flex flex-col">
-			<div class="flex flex-col items-center justify-center py-3 bg-blue-900 border-b border-blue-700"><span class="text-3xl font-extrabold tracking-wide text-white drop-shadow-md">E-Pajar</span><span class="text-[11px] text-blue-200 font-semibold tracking-widest uppercase mb-3">Perangkat Ajar Elektronik</span><span class="text-xs text-blue-300 font-semibold mt-1">${currentSchoolCode || ""}</span></div><div class="p-4 bg-blue-700 flex items-center space-x-3"><div class="w-10 h-10 bg-white rounded-full flex justify-center items-center text-blue-800 font-bold text-lg"><i class="fas fa-user"></i></div><div><div class="font-semibold text-sm max-w-[150px] truncate" title="${currentUserName}">${currentUserName}</div><div class="text-xs text-blue-300 capitalize">${currentUserRole}</div></div></div><nav class="flex-1 overflow-y-auto py-2 flex flex-col">${menuItems}<hr class="border-blue-700 my-2 mx-4"><button onclick="executeSync(false)" class="flex items-center w-full px-6 py-3 text-yellow-300 hover:bg-blue-700 font-bold focus:outline-none text-left"><i class="fas fa-sync-alt w-6"></i> Sinkronisasi Data</button></nav><div class="p-4 border-t border-blue-700"><button onclick="confirmLogout()" class="w-full bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white text-sm font-bold flex items-center justify-center"><i class="fas fa-sign-out-alt mr-2"></i> Keluar Akun</button></div></aside><div class="flex-1 flex flex-col min-w-0 overflow-hidden relative"><header class="bg-white shadow-sm h-16 flex items-center justify-between px-4 z-30"><button onclick="window.toggleSidebar()" class="md:hidden text-gray-600 hover:text-blue-600 focus:outline-none p-2"><i class="fas fa-bars text-2xl"></i></button><h2 id="pageTitle" class="text-lg font-bold text-gray-800 md:ml-4">Dashboard Utama</h2><div class="flex items-center"><i class="fas fa-bell text-gray-400 hover:text-blue-500 cursor-pointer text-xl"></i></div></header><main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 relative"></main></div></div>`;
+			<div class="flex items-center px-4 py-3 bg-blue-900 border-b border-blue-700"><div class="flex-shrink-0 mr-3"><i class="fas fa-graduation-cap text-4xl text-white drop-shadow-lg"></i></div><div class="flex flex-col justify-center"><span class="text-2xl font-extrabold tracking-wide text-white drop-shadow-md leading-none">E-Pajar</span><span class="text-[9px] text-blue-200 font-bold tracking-wider uppercase mt-1">Perangkat Ajar Elektronik</span><span class="text-[11px] text-yellow-300 font-bold mt-0.5">${currentSchoolCode || ""}</span></div></div><div class="p-4 bg-blue-700 flex items-center space-x-3"><div class="w-10 h-10 bg-white rounded-full flex justify-center items-center text-blue-800 font-bold text-lg"><i class="fas fa-user"></i></div><div><div class="font-semibold text-sm max-w-[150px] truncate" title="${currentUserName}">${currentUserName}</div><div class="text-xs text-blue-300 capitalize">${currentUserRole}</div></div></div><nav class="flex-1 overflow-y-auto py-2 flex flex-col">${menuItems}<hr class="border-blue-700 my-2 mx-4"><button onclick="executeSync(false)" class="flex items-center w-full px-6 py-3 text-yellow-300 hover:bg-blue-700 font-bold focus:outline-none text-left"><i class="fas fa-sync-alt w-6"></i> Sinkronisasi Data</button></nav><div class="p-4 border-t border-blue-700"><button onclick="confirmLogout()" class="w-full bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white text-sm font-bold flex items-center justify-center"><i class="fas fa-sign-out-alt mr-2"></i> Keluar Akun</button></div></aside><div class="flex-1 flex flex-col min-w-0 overflow-hidden relative"><header class="bg-white shadow-sm h-16 flex items-center justify-between px-4 z-30"><button onclick="window.toggleSidebar()" class="md:hidden text-gray-600 hover:text-blue-600 focus:outline-none p-2"><i class="fas fa-bars text-2xl"></i></button><h2 id="pageTitle" class="text-lg font-bold text-gray-800 md:ml-4">Dashboard Utama</h2><div class="flex items-center"><i class="fas fa-bell text-gray-400 hover:text-blue-500 cursor-pointer text-xl"></i></div></header><main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 relative"></main></div></div>`;
         }
 
         // =========================================================================
@@ -1143,7 +1143,7 @@ window.generateTabelTPATP = function() {
 			if(kurikulumDB.length === 0) { customAlert("Data kurikulum belum tersedia.", "info"); return; }
 
 			let batchId = `${kelas}_${mapel}_${tahun.replace('/','-')}`;
-			let protaTersimpan = getDB('mc_prota').filter(p => p.batchId === batchId);
+			let protaTersimpan = getDB('mc_prota').filter(p => p.batchId === batchId && (p.guruUsername === currentUserUsername || !p.guruUsername));
 
 			let html = `<div class="mb-4 bg-blue-50 p-4 rounded-lg border border-blue-200"><p class="font-bold text-blue-800">Mapel: ${mapel} | Kelas: ${kelas}</p></div><div class="space-y-4">`;
 			kurikulumDB.forEach((item, index) => {
@@ -1178,7 +1178,7 @@ window.generateTabelTPATP = function() {
 					if(dataFiltered.length === 0) return;
 
 					let batchId = `${kelas}_${mapel}_${tahun.replace('/','-')}`; 
-					let protaTersimpan = protaFull.filter(p => p.batchId === batchId);
+					let protaTersimpan = protaFull.filter(p => p.batchId === batchId && (p.guruUsername === currentUserUsername || !p.guruUsername));
 					
 					let countSem = {}; let countBab = {}; let countMateri = {};
 					dataFiltered.forEach(item => { countSem[item.Semester] = (countSem[item.Semester] || 0) + 1; let keyBab = item.Semester + '_' + item.Bab; countBab[keyBab] = (countBab[keyBab] || 0) + 1; let keyMateri = keyBab + '_' + item.MateriPokok; countMateri[keyMateri] = (countMateri[keyMateri] || 0) + 1; });
@@ -1293,7 +1293,7 @@ window.generateTabelTPATP = function() {
 				let html = `<div class="mb-4 bg-green-50 p-4 rounded-lg border border-green-200"><p class="font-bold text-green-800">Mapel: ${mapel} | Kelas: ${kelas} | ${semester}</p><p class="text-xs text-green-700 mt-1">Isi kolom bulan dengan <b>Angka Tanggal</b> (Misal: <b>12</b>, atau <b>15-16</b>). Sistem otomatis mengonversi ke minggu.</p></div><div class="space-y-4">`;
 				kurikulumDB.forEach((item, index) => {
 					let batchIdPromes = `${kelas}_${mapel}_${semester.replace(' ','')}_${tahun.replace('/','-')}`;
-					let saved = getDB('mc_promes').find(p => p.tp === item.TujuanPembelajaran && p.batchId === batchIdPromes);
+					let saved = getDB('mc_promes').find(p => p.tp === item.TujuanPembelajaran && p.batchId === batchIdPromes && (p.guruUsername === currentUserUsername || !p.guruUsername));
 					let rawTgl = saved && saved.dataBulan ? JSON.parse(saved.dataBulan) : Array(6).fill('');
 
 					html += `<div class="p-4 border border-green-200 rounded-xl shadow-sm bg-white"><div class="text-xs font-bold text-gray-500 mb-1">${item.Bab} - ${item.MateriPokok}</div><div class="text-sm font-semibold text-gray-800 mb-3">${item.TujuanPembelajaran}</div><div class="grid grid-cols-3 md:grid-cols-6 gap-2">`;
@@ -1336,9 +1336,9 @@ window.generateTabelTPATP = function() {
 						if(dataFiltered.length === 0) return;
 
 						let batchIdPromes = `${kelas}_${mapel}_${semester.replace(' ','')}_${tahun.replace('/','-')}`; 
-						let promesTersimpan = promesFull.filter(p => p.batchId === batchIdPromes);
+						let promesTersimpan = promesFull.filter(p => p.batchId === batchIdPromes && (p.guruUsername === currentUserUsername || !p.guruUsername));
 						let batchIdProta = `${kelas}_${mapel}_${tahun.replace('/','-')}`; 
-						let protaTersimpan = protaFull.filter(p => p.batchId === batchIdProta);
+						let protaTersimpan = protaFull.filter(p => p.batchId === batchIdProta && (p.guruUsername === currentUserUsername || !p.guruUsername));
 
 						let countBabMateri = {}; dataFiltered.forEach(item => { let key = item.Bab + ' - ' + item.MateriPokok; countBabMateri[key] = (countBabMateri[key] || 0) + 1; });
 						let lastKey = null; let trHtml = '';
@@ -1567,7 +1567,7 @@ window.generateTabelTPATP = function() {
         // FITUR: JADWAL PELAJARAN
         // =========================================================================
         function renderJadwal() {
-            window.setPageTitle("Jadwal Pelajaran Kelas"); const jadwal = filterBySchool(getDB('mc_jadwal')); const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; let dayHtml = '';
+            const jadwal = filterBySchool(getDB('mc_jadwal')).filter(j => j.guruUsername === currentUserUsername || !j.guruUsername); const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; let dayHtml = '';
             
             let hiddenTableHtml = `<table id="hiddenTabelJadwal" class="hidden" style="width: 100%; border-collapse: collapse; font-family: 'Times New Roman', Times, serif; font-size: 14px; border: 1px solid black;">
                 <thead><tr><th style="border: 1px solid black; padding: 8px;">Hari</th><th style="border: 1px solid black; padding: 8px;">Jam / Waktu</th><th style="border: 1px solid black; padding: 8px;">Mata Pelajaran</th><th style="border: 1px solid black; padding: 8px;">Nama Guru</th></tr></thead><tbody>`;
@@ -1596,7 +1596,7 @@ window.generateTabelTPATP = function() {
                 </div>
                 ${formHtml}<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${dayHtml}</div>${printAreaJadwal}</div>`;
         }
-        function addJadwal() { const hari = document.getElementById('jHari').value; const jam = document.getElementById('jJam').value; const mapel = document.getElementById('jMapel').value; const guru = document.getElementById('jGuru').value; if(!jam || !mapel) { customAlert("Kolom Jam dan Mapel wajib diisi!", "warning"); return; } document.getElementById('loadingText').innerText = "Menyimpan Jadwal..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let data = { id: Date.now(), hari: hari, jam: jam, mapel: mapel, guru: guru, schoolCode: currentSchoolCode }; let jdwl = getDB('mc_jadwal'); jdwl.push(data); saveDB('mc_jadwal', jdwl); syncToSheet('tambah_jadwal', data); document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Jadwal Ditambahkan!", "success"); renderJadwal(); }, 300); }
+        function addJadwal() { const hari = document.getElementById('jHari').value; const jam = document.getElementById('jJam').value; const mapel = document.getElementById('jMapel').value; const guru = document.getElementById('jGuru').value; if(!jam || !mapel) { customAlert("Kolom Jam dan Mapel wajib diisi!", "warning"); return; } document.getElementById('loadingText').innerText = "Menyimpan Jadwal..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let data = { id: Date.now(), hari: hari, jam: jam, mapel: mapel, guru: guru, schoolCode: currentSchoolCode, guruUsername: currentUserUsername }; let jdwl = getDB('mc_jadwal'); jdwl.push(data); saveDB('mc_jadwal', jdwl); syncToSheet('tambah_jadwal', data); document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Jadwal Ditambahkan!", "success"); renderJadwal(); }, 300); }
         async function deleteJadwal(id) { const isConfirm = await customConfirm("Hapus jadwal ini?", "Konfirmasi"); if(!isConfirm) return; document.getElementById('loadingText').innerText = "Menghapus..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let jdwl = getDB('mc_jadwal').filter(j => j.id != id); saveDB('mc_jadwal', jdwl); syncToSheet('hapus_jadwal', { id: id }); document.getElementById('loadingOverlay').classList.add('hidden'); renderJadwal(); }, 300); }
 
         // --- MANAJEMEN SISWA ---
@@ -1668,8 +1668,8 @@ function renderGuruTabungan() {
     let btnRekap = tabunganTab === 'rekap' ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 border border-teal-600 hover:bg-teal-50';
 
     const students = getMyStudents();
-    const tabunganSiswa = filterBySchool(getDB('mc_tabungan'));
-    const tabunganGuru = filterBySchool(getDB('mc_saldo_guru'));
+	const tabunganSiswa = filterBySchool(getDB('mc_tabungan')).filter(t => t.guruUsername === currentUserUsername || !t.guruUsername);
+	const tabunganGuru = filterBySchool(getDB('mc_saldo_guru')).filter(t => t.guruUsername === currentUserUsername || !t.guruUsername);
     let contentHTML = '';
 
     if (tabunganTab === 'harian') {
@@ -1710,18 +1710,12 @@ function renderGuruTabungan() {
             </tr>`);
         });
 
-        // Dropdown nama siswa disederhanakan (Hanya Nama)
+       // Dropdown nama siswa disederhanakan (Hanya Nama)
         let studentOptions = '<option value="">-- Pilih Akun / Nama --</option><optgroup label="--- TRANSAKSI KAS GURU ---">';
-        const users = getDB('mc_users').filter(function(u){ return !u.schoolCode || u.schoolCode === currentSchoolCode; });
-        const gurus = users.filter(u => u.role === 'guru');
-        if (gurus.length === 0) {
-            studentOptions += `<option value="guru_${currentUserName}">${currentUserName}</option>`;
-        } else {
-            gurus.forEach(g => {
-                let nama = g.namaLengkap || g.username;
-                studentOptions += `<option value="guru_${nama}">${nama}</option>`;
-            });
-        }
+        
+        // PERBAIKAN 1: Hanya tampilkan nama guru yang sedang login (Harian & Input)
+        studentOptions += `<option value="guru_${currentUserName}">${currentUserName}</option>`;
+        
         studentOptions += '</optgroup><optgroup label="--- TABUNGAN SISWA ---">';
         students.forEach(s => {
             studentOptions += `<option value="siswa_${s.id}">${s.nama}</option>`;
@@ -1742,12 +1736,10 @@ function renderGuruTabungan() {
         </div>`;
     } else if (tabunganTab === 'cetak') {
         let studentOptions = '<option value="">-- Pilih Akun yang Dicari --</option><optgroup label="--- KAS GURU ---">';
-        const users = getDB('mc_users');
-        const gurus = users.filter(u => u.role === 'guru');
-        gurus.forEach(g => {
-            let nama = g.namaLengkap || g.username;
-            studentOptions += '<option value="guru_' + nama + '" ' + (cetakStudentId == 'guru_' + nama ? 'selected' : '') + '>' + nama + '</option>';
-        });
+        
+        // PERBAIKAN 2: Hanya tampilkan nama guru yang sedang login untuk dicetak
+        studentOptions += '<option value="guru_' + currentUserName + '" ' + (cetakStudentId == 'guru_' + currentUserName ? 'selected' : '') + '>' + currentUserName + '</option>';
+        
         studentOptions += '</optgroup><optgroup label="--- TABUNGAN SISWA ---">';
         students.forEach(s => {
             studentOptions += '<option value="siswa_' + s.id + '" ' + (cetakStudentId == 'siswa_' + s.id ? 'selected' : '') + '>' + s.nama + ' (' + s.nisn + ')</option>';
@@ -1810,22 +1802,25 @@ function renderGuruTabungan() {
         });
 
         let detailGuruHtml = '';
-        const users = getDB('mc_users');
-        const gurus = users.filter(u => u.role === 'guru');
         let guruNames = new Set();
-        tabunganGuru.forEach(t => guruNames.add(t.namaGuru));
-        gurus.forEach(g => guruNames.add(g.namaLengkap || g.username));
-        if (guruNames.size === 0) guruNames.add(currentUserName);
+        
+        // PERBAIKAN 3: Hanya gunakan nama guru yang sedang login untuk rekap saldo
+        guruNames.add(currentUserName);
+        
         guruNames.forEach(gName => {
             let saldoGuru = 0;
-            tabunganSiswa.filter(t => t.studentId === 'GURU' && currentUserName === gName).forEach(t => {
+            
+            // PERBAIKAN: Menambahkan pengecekan currentUserUsername agar data tidak bocor antar guru
+            tabunganSiswa.filter(t => t.studentId === 'GURU' && (currentUserName === gName || currentUserUsername === gName)).forEach(t => {
                 if (t.jenis === 'Masuk') saldoGuru += parseInt(t.jumlah);
                 else saldoGuru -= parseInt(t.jumlah);
             });
+            
             tabunganGuru.filter(t => t.namaGuru == gName).forEach(t => {
                 if (t.jenis === 'Masuk') saldoGuru += parseInt(t.jumlah);
                 else saldoGuru -= parseInt(t.jumlah);
             });
+            
             let inisial = gName ? gName.charAt(0).toUpperCase() : 'G';
             detailGuruHtml += `<div class="flex justify-between items-center p-3 border-b hover:bg-gray-50"><div class="flex items-center space-x-3"><div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-sm border border-green-200">${inisial}</div><p class="font-semibold text-sm text-gray-800">${gName}</p></div><div class="font-bold text-green-600 whitespace-nowrap">Rp ${saldoGuru.toLocaleString('id-ID')}</div></div>`;
         });
@@ -1944,7 +1939,7 @@ window.cetakRekapSaldoSiswa = function() {
         element.classList.add('hidden'); // Sembunyikan kembali setelah selesai
     });
 };
-	function addTabungan() { const selectedAccount = document.getElementById('tStudent').value; const jenis = document.getElementById('tJenis').value; const jumlah = getRawNumber(document.getElementById('tJumlah').value); const inputDateVal = document.getElementById('tTanggalInput').value; if(!selectedAccount) { customAlert("Pilih Akun / Daftar Nama terlebih dahulu!", "warning"); return; } if(!jumlah || jumlah <= 0) { customAlert("Masukkan nominal rupiah yang valid!", "warning"); return; } if(!inputDateVal) { customAlert("Pilih tanggal!", "warning"); return; } let type = selectedAccount.startsWith('guru_') ? 'guru' : 'siswa'; let idOrName = selectedAccount.replace('guru_', '').replace('siswa_', ''); if(!editingTabunganId) { let isDup = false; if(type === 'guru') { isDup = getDB('mc_saldo_guru').some(t => t.namaGuru == idOrName && t.jenis == jenis && parseInt(t.jumlah) == jumlah && t.tanggal.split('T')[0] === inputDateVal); } else { isDup = getDB('mc_tabungan').some(t => t.studentId == idOrName && t.jenis == jenis && parseInt(t.jumlah) == jumlah && t.tanggal.split('T')[0] === inputDateVal); } if(isDup) { customAlert("DITOLAK! Transaksi ini sudah ada.", "error"); return; } } document.getElementById('loadingText').innerText = "Menyimpan Transaksi..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let tglISO = inputDateVal + "T" + new Date().toISOString().split('T')[1]; if (editingTabunganId) { if (editingTabunganType === 'guru') { let sg = getDB('mc_saldo_guru'); let idx = sg.findIndex(x => x.id == editingTabunganId); if(idx > -1) { sg[idx].jenis = jenis; sg[idx].jumlah = jumlah; sg[idx].tanggal = tglISO; } saveDB('mc_saldo_guru', sg); syncToSheet('update_saldo_guru', sg[idx]); } else { let st = getDB('mc_tabungan'); let idx = st.findIndex(x => x.id == editingTabunganId); if(idx > -1) { st[idx].jenis = jenis; st[idx].jumlah = jumlah; st[idx].tanggal = tglISO; } saveDB('mc_tabungan', st); syncToSheet('update_tabungan', st[idx]); } editingTabunganId = null; editingTabunganType = null; } else { let data = { id: Date.now(), jenis, jumlah, tanggal: tglISO, schoolCode: currentSchoolCode }; if (type === 'guru') { data.namaGuru = idOrName; let sg = getDB('mc_saldo_guru'); sg.push(data); saveDB('mc_saldo_guru', sg); syncToSheet('tambah_saldo_guru', data); } else { data.studentId = idOrName; let st = getDB('mc_tabungan'); st.push(data); saveDB('mc_tabungan', st); syncToSheet('tambah_tabungan', data); } } document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Berhasil Disimpan!", "success"); renderGuruTabungan(); }, 400); }
+	function addTabungan() { const selectedAccount = document.getElementById('tStudent').value; const jenis = document.getElementById('tJenis').value; const jumlah = getRawNumber(document.getElementById('tJumlah').value); const inputDateVal = document.getElementById('tTanggalInput').value; if(!selectedAccount) { customAlert("Pilih Akun / Daftar Nama terlebih dahulu!", "warning"); return; } if(!jumlah || jumlah <= 0) { customAlert("Masukkan nominal rupiah yang valid!", "warning"); return; } if(!inputDateVal) { customAlert("Pilih tanggal!", "warning"); return; } let type = selectedAccount.startsWith('guru_') ? 'guru' : 'siswa'; let idOrName = selectedAccount.replace('guru_', '').replace('siswa_', ''); if(!editingTabunganId) { let isDup = false; if(type === 'guru') { isDup = getDB('mc_saldo_guru').some(t => t.namaGuru == idOrName && t.jenis == jenis && parseInt(t.jumlah) == jumlah && t.tanggal.split('T')[0] === inputDateVal); } else { isDup = getDB('mc_tabungan').some(t => t.studentId == idOrName && t.jenis == jenis && parseInt(t.jumlah) == jumlah && t.tanggal.split('T')[0] === inputDateVal); } if(isDup) { customAlert("DITOLAK! Transaksi ini sudah ada.", "error"); return; } } document.getElementById('loadingText').innerText = "Menyimpan Transaksi..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { let tglISO = inputDateVal + "T" + new Date().toISOString().split('T')[1]; if (editingTabunganId) { if (editingTabunganType === 'guru') { let sg = getDB('mc_saldo_guru'); let idx = sg.findIndex(x => x.id == editingTabunganId); if(idx > -1) { sg[idx].jenis = jenis; sg[idx].jumlah = jumlah; sg[idx].tanggal = tglISO; } saveDB('mc_saldo_guru', sg); syncToSheet('update_saldo_guru', sg[idx]); } else { let st = getDB('mc_tabungan'); let idx = st.findIndex(x => x.id == editingTabunganId); if(idx > -1) { st[idx].jenis = jenis; st[idx].jumlah = jumlah; st[idx].tanggal = tglISO; } saveDB('mc_tabungan', st); syncToSheet('update_tabungan', st[idx]); } editingTabunganId = null; editingTabunganType = null; } else { let data = { id: Date.now(), jenis, jumlah, tanggal: tglISO, schoolCode: currentSchoolCode, guruUsername: currentUserUsername }; if (type === 'guru') { data.namaGuru = idOrName; let sg = getDB('mc_saldo_guru'); sg.push(data); saveDB('mc_saldo_guru', sg); syncToSheet('tambah_saldo_guru', data); } else { data.studentId = idOrName; let st = getDB('mc_tabungan'); st.push(data); saveDB('mc_tabungan', st); syncToSheet('tambah_tabungan', data); } } document.getElementById('loadingOverlay').classList.add('hidden'); customAlert("Berhasil Disimpan!", "success"); renderGuruTabungan(); }, 400); }
         function editTabungan(id, type) { editingTabunganId = id; editingTabunganType = type; tabunganTab = 'harian'; renderGuruTabungan(); window.scrollTo({top: 0, behavior: 'smooth'}); } function batalEditTabungan() { editingTabunganId = null; editingTabunganType = null; renderGuruTabungan(); }
         async function deleteTabungan(id, type) { const isConfirm = await customConfirm("MENGHAPUS PERMANEN transaksi ini?", "Konfirmasi Hapus"); if(!isConfirm) return; document.getElementById('loadingText').innerText = "Menghapus..."; document.getElementById('loadingOverlay').classList.remove('hidden'); setTimeout(() => { if(type === 'guru') { let sg = getDB('mc_saldo_guru').filter(t => t.id != id); saveDB('mc_saldo_guru', sg); syncToSheet('hapus_saldo_guru', { id: id }); } else { let st = getDB('mc_tabungan').filter(t => t.id != id); saveDB('mc_tabungan', st); syncToSheet('hapus_tabungan', { id: id }); } if(editingTabunganId === id) { editingTabunganId = null; editingTabunganType = null; } document.getElementById('loadingOverlay').classList.add('hidden'); renderGuruTabungan(); }, 400); }
    
@@ -2017,37 +2012,93 @@ window.cetakRekapSaldoSiswa = function() {
             window.startCarousel(); setTimeout(window.updateChart, 100); 
         }
 
-        window.updateChart = function() {
-            const absen = filterBySchool(getDB('mc_absen')); const students = getMyStudents(); const month = parseInt(document.getElementById('chartMonth').value); const year = parseInt(document.getElementById('chartYear').value);
-            let uniqueDatesClass = new Set(); absen.forEach(a => { const d = new Date(a.tanggal); if(d.getMonth() === month && d.getFullYear() === year) uniqueDatesClass.add(a.tanggal); }); let hariEfektif = uniqueDatesClass.size;
-            let filteredAbsen = absen.filter(a => { const d = new Date(a.tanggal); return d.getMonth() === month && d.getFullYear() === year; }); if (currentUserRole === 'siswa') { filteredAbsen = filteredAbsen.filter(a => a.studentId == currentStudentId); }
-            let counts = { h: 0, s: 0, i: 0, t: 0 }; filteredAbsen.forEach(a => { if(a.status === 'Hadir') counts.h++; if(a.status === 'Sakit') counts.s++; if(a.status === 'Izin') counts.i++; if(a.status === 'Tanpa Keterangan') counts.t++; });
-            const ctx = document.getElementById('absenChart').getContext('2d'); if(myChart) myChart.destroy();
-            myChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Hadir', 'Sakit', 'Izin', 'Tanpa Keterangan'], datasets: [{ data: [counts.h, counts.s, counts.i, counts.t], backgroundColor: ['#10B981', '#F59E0B', '#3B82F6', '#EF4444'], borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
+window.updateChart = function() {
+            // 1. Ambil daftar siswa HANYA untuk kelas/guru yang sedang login
+            const students = getMyStudents(); 
+            const myStudentIds = students.map(s => s.id);
             
+            // 2. Tarik data absen se-sekolah, lalu filter hanya untuk siswa milik guru tersebut
+            const absen = filterBySchool(getDB('mc_absen')).filter(a => 
+                currentUserRole !== 'guru' || myStudentIds.includes(a.studentId) || a.guruUsername === currentUserUsername
+            );
+            
+            const month = parseInt(document.getElementById('chartMonth').value); 
+            const year = parseInt(document.getElementById('chartYear').value);
+            
+            // 3. Hitung Hari Efektif (KBM) berdasarkan absen yang sudah difilter
+            let uniqueDatesClass = new Set(); 
+            absen.forEach(a => { 
+                const d = new Date(a.tanggal); 
+                if(d.getMonth() === month && d.getFullYear() === year) uniqueDatesClass.add(a.tanggal); 
+            }); 
+            let hariEfektif = uniqueDatesClass.size;
+            
+            // 4. Filter absen sesuai bulan dan tahun
+            let filteredAbsen = absen.filter(a => { 
+                const d = new Date(a.tanggal); 
+                return d.getMonth() === month && d.getFullYear() === year; 
+            }); 
+            
+            // 5. Jika login sebagai siswa, filter lagi khusus data dirinya
+            if (currentUserRole === 'siswa') { 
+                filteredAbsen = filteredAbsen.filter(a => a.studentId == currentStudentId); 
+            }
+            
+            // 6. Hitung jumlah H, S, I, TK
+            let counts = { h: 0, s: 0, i: 0, t: 0 }; 
+            filteredAbsen.forEach(a => { 
+                if(a.status === 'Hadir') counts.h++; 
+                if(a.status === 'Sakit') counts.s++; 
+                if(a.status === 'Izin') counts.i++; 
+                if(a.status === 'Tanpa Keterangan') counts.t++; 
+            });
+            
+            // 7. Render Grafik Doughnut Chart
+            const canvasEl = document.getElementById('absenChart');
+            if (canvasEl) {
+                const ctx = canvasEl.getContext('2d'); 
+                if (myChart) myChart.destroy();
+                myChart = new Chart(ctx, { 
+                    type: 'doughnut', 
+                    data: { 
+                        labels: ['Hadir', 'Sakit', 'Izin', 'Tanpa Keterangan'], 
+                        datasets: [{ 
+                            data: [counts.h, counts.s, counts.i, counts.t], 
+                            backgroundColor: ['#10B981', '#F59E0B', '#3B82F6', '#EF4444'], 
+                            borderWidth: 1 
+                        }] 
+                    }, 
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { position: 'bottom' } } 
+                    } 
+                });
+            }
+            
+            // 8. Render Rincian Kalkulasi
             let detailHtml = "";
             if (currentUserRole === 'siswa') {
                 let persentaseIndividu = hariEfektif > 0 ? (counts.h / hariEfektif) * 100 : 0;
                 detailHtml = `<h4 class="font-bold text-gray-700 mb-4 border-b pb-2">Rincian Kehadiran Anda</h4><div class="space-y-3 text-sm"><div class="flex justify-between border-b pb-1"><span class="text-gray-500">Hari Efektif Kelas:</span><span class="font-bold text-gray-800">${hariEfektif} Hari</span></div><div class="flex justify-between border-b pb-1"><span class="text-gray-500">Anda Hadir:</span><span class="font-bold text-green-600">${counts.h} Kali</span></div><div class="pt-4 text-center"><p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Persentase Kehadiran Anda</p><h2 class="text-4xl font-extrabold ${persentaseIndividu >= 80 ? 'text-green-600' : 'text-red-500'}">${persentaseIndividu.toFixed(1)}%</h2></div></div>`;
             } else {
-                let totalSiswa = students.length; let persentaseKelas = (totalSiswa > 0 && hariEfektif > 0) ? (counts.h / (totalSiswa * hariEfektif)) * 100 : 0;
+                let totalSiswa = students.length; 
+                let persentaseKelas = (totalSiswa > 0 && hariEfektif > 0) ? (counts.h / (totalSiswa * hariEfektif)) * 100 : 0;
                 detailHtml = `<h4 class="font-bold text-gray-700 mb-4 border-b pb-2">Rincian Kalkulasi Kelas</h4><div class="space-y-3 text-sm"><div class="flex justify-between border-b pb-1"><span class="text-gray-500">Jumlah Siswa:</span><span class="font-bold text-gray-800">${totalSiswa} Anak</span></div><div class="flex justify-between border-b pb-1"><span class="text-gray-500">Hari Efektif (KBM):</span><span class="font-bold text-gray-800">${hariEfektif} Hari</span></div><div class="flex justify-between border-b pb-1"><span class="text-gray-500">Total Kehadiran:</span><span class="font-bold text-green-600">${counts.h} Kali</span></div><div class="pt-4 text-center"><p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Rata-rata Kehadiran Kelas</p><h2 class="text-4xl font-extrabold ${persentaseKelas >= 80 ? 'text-green-600' : 'text-red-500'}">${persentaseKelas.toFixed(1)}%</h2></div></div>`;
             }
-            document.getElementById('absenDetails').innerHTML = detailHtml;
-        }
-
-        async function confirmLogout() {
-            const isConfirm = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi?", "Konfirmasi Keluar");
-            if(isConfirm) {
-                rmSafe('mc_session');
-                currentUserRole = null; currentUserName = null; currentUserUsername = null; currentSchoolCode = null;
-                window.navTo('renderLogin');
+            
+            let detailContainer = document.getElementById('absenDetails');
+            if (detailContainer) {
+                detailContainer.innerHTML = detailHtml;
             }
-        }
+        };
+
+ async function confirmLogout() { const isConfirm = await customConfirm("Apakah Anda yakin ingin keluar dari aplikasi?", "Konfirmasi Keluar"); if(isConfirm) { rmSafe('mc_session'); currentUserRole = null; currentUserName = null; currentUserUsername = null; window.navTo('renderLogin'); } }
         let slideIndex = 0; let carouselInterval;
         function startCarousel() { clearInterval(carouselInterval); carouselInterval = setInterval(() => { let slides = document.getElementsByClassName("carousel-slide"); if(slides.length === 0) return; for (let i = 0; i < slides.length; i++) slides[i].className = slides[i].className.replace(" active", ""); slideIndex++; if (slideIndex > slides.length) slideIndex = 1; slides[slideIndex - 1].className += " active"; }, 4000); }
         window.onload = function() { initDB(); if(!loadSession()) { renderLogin(); } };
 		
+
 <!-- ========================================================================= -->
 <!-- MULAI SNIPPET FITUR MODUL AJAR -->
 <!-- ========================================================================= -->
@@ -3017,7 +3068,7 @@ window.simpanModalProta = function(kurikulumDB, batchId, tahun, kelas, mapel) {
         let ket = document.getElementById(`mKet_${i}`).value;
         if(aw || ket) {
             rowToSave.push({
-                id: Date.now() + i, guru: currentUserName, tahun: tahun, kelas: kelas, mapel: mapel,
+                id: Date.now() + i, guru: currentUserName, guruUsername: currentUserUsername, tahun: tahun, kelas: kelas, mapel: mapel,
                 semester: item.Semester, bab: item.Bab, materi: item.MateriPokok,
                 tp: item.TujuanPembelajaran, alokasi: aw, keterangan: ket, batchId: batchId
             });
@@ -3040,25 +3091,29 @@ window.simpanModalProta = function(kurikulumDB, batchId, tahun, kelas, mapel) {
 };
 
 // =========================================================================
-// LOGIKA MODAL PROGRAM SEMESTER (PROMES) + MAPPING TANGGAL KE MINGGU
+// =========================================================================
+// LOGIKA MODAL PROGRAM SEMESTER (PROMES) + MAPPING TANGGAL KE MINGGU (FINAL)
 // =========================================================================
 window.simpanModalPromes = function(kurikulumDB, tahun, kelas, semester) {
     let groupedToSave = {};
     
-    // Sort array flat sesuai kemunculan di UI Modal (Berdasarkan pengelompokan Mapel)
+    // 1. Sort array flat sesuai kemunculan di UI Modal (Berdasarkan pengelompokan Mapel)
     let sortedItems = [];
     let mapels = [...new Set(kurikulumDB.map(k => k.MataPelajaran))];
     mapels.forEach(m => {
         kurikulumDB.filter(k => k.MataPelajaran === m).forEach(item => sortedItems.push(item));
     });
 
+    // 2. Iterasi setiap item TP untuk diproses
     sortedItems.forEach((item, i) => {
         let dataBulan = [];
         let dataMinggu = Array(30).fill(''); // 30 Kolom untuk Blanko Cetak
         let hasData = false;
 
+        // Ambil nilai dari 6 input bulan (mP_0_0 sampai mP_x_5)
         for(let mIdx = 0; mIdx < 6; mIdx++) {
-            let val = document.getElementById(`mP_${i}_${mIdx}`).value.trim();
+            let inputEl = document.getElementById(`mP_${i}_${mIdx}`);
+            let val = inputEl ? inputEl.value.trim() : '';
             dataBulan.push(val);
             
             if(val !== '') {
@@ -3072,46 +3127,75 @@ window.simpanModalPromes = function(kurikulumDB, tahun, kelas, semester) {
                         if(weekIdx > 4) weekIdx = 4; // Maksimal minggu ke-5 (idx 4)
                         
                         let absoluteIndex = (mIdx * 5) + weekIdx; // Posisi di array 30 kolom
-                        dataMinggu[absoluteIndex] = val; // Tulis teks asli guru di posisi minggu tersebut
+                        dataMinggu[absoluteIndex] = val; // Simpan teks asli guru di kolom minggu terkait
                     }
                 });
             }
         }
 
+        // 3. Jika baris ini ada isinya, masukkan ke objek temporary
         if(hasData) {
             let batchIdPromes = `${kelas}_${item.MataPelajaran}_${semester.replace(' ','')}_${tahun.replace('/','-')}`;
             let batchIdProta = `${kelas}_${item.MataPelajaran}_${tahun.replace('/','-')}`;
             
-            // Tarik AW dari tabel Prota otomatis
+            // Tarik Alokasi Waktu (AW) dari tabel Prota otomatis 
             let awVal = '-';
-            let savedProta = getDB('mc_prota').find(p => p.batchId === batchIdProta && p.tp === item.TujuanPembelajaran && p.bab === item.Bab);
+            let savedProta = getDB('mc_prota').find(p => 
+                p.batchId === batchIdProta && 
+                p.tp === item.TujuanPembelajaran && 
+                p.bab === item.Bab &&
+                (p.guruUsername === currentUserUsername || !p.guruUsername)
+            );
             if(savedProta) awVal = savedProta.alokasi;
 
             if(!groupedToSave[batchIdPromes]) groupedToSave[batchIdPromes] = [];
             
             groupedToSave[batchIdPromes].push({
-                id: Date.now() + i, guru: currentUserName, tahun: tahun, kelas: kelas, mapel: item.MataPelajaran,
-                semester: semester, babMateri: item.Bab + ' - ' + item.MateriPokok, tp: item.TujuanPembelajaran,
-                aw: awVal, dataMinggu: dataMinggu, dataBulan: JSON.stringify(dataBulan), keterangan: '', batchId: batchIdPromes
+                id: Date.now() + i, 
+                guru: currentUserName, 
+                guruUsername: currentUserUsername, // Kunci utama keamanan data 
+                tahun: tahun, 
+                kelas: kelas, 
+                mapel: item.MataPelajaran,
+                semester: semester, 
+                babMateri: item.Bab + ' - ' + item.MateriPokok, 
+                tp: item.TujuanPembelajaran,
+                aw: awVal, 
+                dataMinggu: dataMinggu, 
+                dataBulan: JSON.stringify(dataBulan), 
+                keterangan: '', 
+                batchId: batchIdPromes,
+                schoolCode: currentSchoolCode
             });
         }
     });
 
-    document.getElementById('loadingText').innerText = "Menyimpan Promes Semua Mapel..."; 
+    // 4. Proses Eksekusi Simpan
+    document.getElementById('loadingText').innerText = "Menyimpan Promes..."; 
     document.getElementById('loadingOverlay').classList.remove('hidden');
 
     setTimeout(() => {
         let db = getDB('mc_promes');
+        
         for(let bId in groupedToSave) {
-            db = db.filter(p => p.batchId !== bId); // Hapus data lama di batch ini
-            db.push(...groupedToSave[bId]); // Masukkan data baru
+            // PERBAIKAN: Hanya hapus data lama milik guru yang sedang login agar tidak tumpang tindih 
+            db = db.filter(p => !(p.batchId === bId && p.guruUsername === currentUserUsername));
+            
+            // Masukkan data baru
+            db.push(...groupedToSave[bId]); 
+            
+            // Kirim ke Google Sheets (Backend)
             syncToSheet('simpan_promes', { batchId: bId, rows: groupedToSave[bId] });
         }
+        
         saveDB('mc_promes', db);
         
         document.getElementById('loadingOverlay').classList.add('hidden');
         document.getElementById('modalInputKurikulum').classList.add('hidden');
-        customAlert("Tanggal Promes berhasil disimpan dan dikonversi!", "success");
+        customAlert("Program Semester berhasil disimpan!", "success");
+        
+        // Refresh tampilan tabel jika fungsi render tersedia
+        if(typeof window.generateTabelPromes === 'function') window.generateTabelPromes();
     }, 600);
 };
 // =========================================================================
@@ -3256,7 +3340,7 @@ window.simpanModalPromes = function(kurikulumDB, tahun, kelas, mapel, semester) 
             if(savedProta) awVal = savedProta.alokasi;
             
             rowToSave.push({
-                id: Date.now() + i, guru: currentUserName, tahun: tahun, kelas: kelas, mapel: mapel,
+                id: Date.now() + i, guru: currentUserName, guruUsername: currentUserUsername, tahun: tahun, kelas: kelas, mapel: mapel,
                 semester: semester, babMateri: item.Bab + ' - ' + item.MateriPokok, tp: item.TujuanPembelajaran,
                 aw: awVal, dataMinggu: dataMinggu, dataBulan: JSON.stringify(dataBulan), keterangan: '', batchId: batchIdPromes
             });
